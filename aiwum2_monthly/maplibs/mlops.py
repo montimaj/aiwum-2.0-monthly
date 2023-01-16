@@ -66,22 +66,22 @@ def get_model_param_dict(random_state=0, use_dask=False):
         'num_leaves': [31, 32],
         'min_data_in_leaf': [30, 40]
     }, 'DRF': {
-        'n_estimators': [400, 500, 600],
-        'max_depth': [16, 20, 32, -1],
+        'n_estimators': [500],
+        'max_depth': [8, -1],
         'learning_rate': [1e-4],
-        'bagging_fraction': [0.8, 0.5],
-        'feature_fraction': [0.8, 0.9],
+        'bagging_fraction': [0.8],
+        'feature_fraction': [0.8],
         'lambda_l2': [0, 0.1],
         'path_smooth': [0, 0.1],
-        'num_leaves': [100, 150, 200],
-        'min_data_in_leaf': [25, 28, 30],
+        'num_leaves': [100],
+        'min_data_in_leaf': [30],
     }, 'RF': {
-        'n_estimators': [300, 400, 500],
-        'max_features': [5, 6, 7],
-        'max_depth': [8, 15, 20, None],
-        'max_leaf_nodes': [16, 20],
-        'max_samples': [None, 0.9, 0.8, 0.7],
-        'min_samples_leaf': [1, 2]
+        'n_estimators': [500],
+        'max_features': [10, 12, 8],
+        'max_depth': [8, None],
+        'max_leaf_nodes': [4, 8, None],
+        'max_samples': [None],
+        'min_samples_leaf': [1, 2, 3]
     }, 'ETR': {
         'n_estimators': [300, 400, 500],
         'max_features': [5, 6, 7],
@@ -262,7 +262,7 @@ def build_ml_model(x_train, y_train, model_dir, model_name='DRF', random_state=4
     return model
 
 
-def calc_train_test_metrics(pred_df, crop_col, year_col):
+def calc_train_test_metrics(pred_df, crop_col=None, year_col=None):
     """
     Calculate train and test metrics from the prediction data frames
     :param pred_df: Prediction data frame
@@ -284,25 +284,26 @@ def calc_train_test_metrics(pred_df, crop_col, year_col):
     print('\nTest results...')
     r2, mae, rmse = get_prediction_stats(test_actual, test_pred)
     print('R2:', r2, 'RMSE:', rmse, 'MAE:', mae)
-    cols = [col for col in pred_df.columns if col.startswith(crop_col)] + [year_col]
-    for col in cols:
-        print('\n***{} specific stats***\n'.format(col))
-        if col != year_col:
-            col_val_list = [1]
-        else:
-            col_val_list = np.unique(np.append(train_data[col].unique(), test_data[col].unique()))
-        for val in sorted(col_val_list):
-            print('\n{} type: {}'.format(col, val))
-            train_actual = train_data[train_data[col] == val]['Actual_GW'].to_numpy().ravel()
-            train_pred = train_data[train_data[col] == val]['Pred_GW'].to_numpy().ravel()
-            test_actual = test_data[test_data[col] == val]['Actual_GW'].to_numpy().ravel()
-            test_pred = test_data[test_data[col] == val]['Pred_GW'].to_numpy().ravel()
-            print('Train + Validation results...')
-            r2, mae, rmse = get_prediction_stats(train_actual, train_pred)
-            print('R2:', r2, 'RMSE:', rmse, 'MAE:', mae)
-            print('\nTest results...')
-            r2, mae, rmse = get_prediction_stats(test_actual, test_pred)
-            print('R2:', r2, 'RMSE:', rmse, 'MAE:', mae)
+    if crop_col and year_col:
+        cols = [col for col in pred_df.columns if col.startswith(crop_col)] + [year_col]
+        for col in cols:
+            print('\n***{} specific stats***\n'.format(col))
+            if col != year_col:
+                col_val_list = [1]
+            else:
+                col_val_list = np.unique(np.append(train_data[col].unique(), test_data[col].unique()))
+            for val in sorted(col_val_list):
+                print('\n{} type: {}'.format(col, val))
+                train_actual = train_data[train_data[col] == val]['Actual_GW'].to_numpy().ravel()
+                train_pred = train_data[train_data[col] == val]['Pred_GW'].to_numpy().ravel()
+                test_actual = test_data[test_data[col] == val]['Actual_GW'].to_numpy().ravel()
+                test_pred = test_data[test_data[col] == val]['Pred_GW'].to_numpy().ravel()
+                print('Train + Validation results...')
+                r2, mae, rmse = get_prediction_stats(train_actual, train_pred)
+                print('R2:', r2, 'RMSE:', rmse, 'MAE:', mae)
+                print('\nTest results...')
+                r2, mae, rmse = get_prediction_stats(test_actual, test_pred)
+                print('R2:', r2, 'RMSE:', rmse, 'MAE:', mae)
 
 
 def get_grid_search_stats(gs_model, y_scaler=None):

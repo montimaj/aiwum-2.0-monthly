@@ -58,6 +58,7 @@
 # --use-dask False \
 # --swb-data-path ../../HydroMAP_ML/USGS_MAP/SWB_Data/ \
 # --hsg-to-inf True \
+# --drop-attr Year Month \
 # --pdp-plot-features All
 #
 # Execute map_ml.py (change the paths and flags accordingly) on Windows powershell
@@ -65,12 +66,12 @@
 # --input-rt-shp '../Data/RT/Realtime_WU_meter_site_2018–2021.shp' `
 # --input-rt-xls '../Data/RT/2__Real-time_WU_daily_values_2018–2021.xlsx' `
 # --field-shp-dir ../../HydroMAP_ML/USGS_MAP/permitted_boundaries/Shapefiles/ `
-# --load-files False `
+# --load-files True `
 # --load-data True `
 # --load-model False `
 # --use-sub-cols True `
 # --sub-cols Year Month AF_Acre lat_dd long_dd crop `
-# --test-size 0.2 `
+# --test-size 0.25 `
 # --random-state 1234 `
 # --output-dir ../Outputs/ `
 # --model-dir ../Models/ `
@@ -87,11 +88,10 @@
 # --split-strategy 2 `
 # --test-years 2020 `
 # --load-map-csv False `
-# --model-name DRF `
+# --model-name RF `
 # --randomized-search False `
 # --fold-count 5 `
 # --repeats 3 `
-# --outlier-op 2 `
 # --gdal-path C:/OSGeo4W64/ `
 # --gee-files RO SM_IDAHO `
 # --prism-files ppt tmax `
@@ -103,6 +103,8 @@
 # --use-dask False `
 # --swb-data-path ../../HydroMAP_ML/USGS_MAP/SWB_Data/ `
 # --hsg-to-inf True `
+# --drop-attr Year Month `
+# --outlier-op 2 `
 # --pdp-plot-features All
 
 # ------------------------------------------------- Main code begins --------------------------------------------------
@@ -214,7 +216,7 @@ def run_map_ml(args):
         dt_xls=args.dt_xls,
         year_list=args.train_year_list,
         state_list=args.state_list,
-        load_csv=True
+        load_csv=args.load_files
     )
     monthly_df, file_dirs = prepare_data(
         monthly_df,
@@ -271,10 +273,10 @@ def run_map_ml(args):
         y_train, y_test, x_scaler,
         y_scaler, year_train,
         year_test, args.model_dir,
-        args.model_name, args.year_col,
-        args.crop_col, crop_train, crop_test
+        args.model_name, args.year_shp,
+        args.crop_shp, crop_train, crop_test
     )
-    calc_train_test_metrics(pred_df, args.crop_col, args.year_col)
+    calc_train_test_metrics(pred_df)
     if args.pdp_plot_features:
         create_pdplots(
             x_train, model,

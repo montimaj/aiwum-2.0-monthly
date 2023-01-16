@@ -1299,6 +1299,9 @@ def create_train_test_data(input_df, output_dir, pred_attr='AF_Acre', drop_attr=
         if year_col in drop_attr:
             drop_attr.remove(year_col)
         input_df = input_df.drop(columns=drop_attr)
+        input_df = input_df[input_df[crop_col].isin([
+            'Rice', 'Corn', 'Cotton', 'Fish Culture', 'Soybeans'
+        ])]
         input_df = input_df[~input_df.isin([np.nan, np.inf, -np.inf]).any(1)]
         if year_list and year_col in input_df.columns:
             input_df = input_df[input_df[year_col].isin(year_list)]
@@ -1312,7 +1315,7 @@ def create_train_test_data(input_df, output_dir, pred_attr='AF_Acre', drop_attr=
             test_size=test_size,
             random_state=random_state, shuffle=shuffle,
             test_year=test_year, crop_col=crop_col,
-            split_strategy=split_strategy
+            split_strategy=split_strategy, year_col=year_col
         )
         year_train = x_train[year_col].copy().to_frame()
         year_test = x_test[year_col].copy().to_frame()
