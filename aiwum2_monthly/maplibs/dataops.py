@@ -12,6 +12,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import sklearn.utils as sk
+import rasterio as rio
+import swifter
 from pyproj import Transformer
 from glob import glob
 from copy import deepcopy
@@ -330,6 +332,7 @@ def create_monthly_wu_csv(rt_shp_file, rt_xls_file, output_dir, site_id_shp='Sit
             )
             vmp_monthly['Data'] = 'VMP'
             rt_df_new = pd.concat([rt_df_new, vmp_monthly])
+        rt_df_new = rt_df_new.reset_index(drop=True)
         rt_df_new.to_csv(map_monthly_csv, index=False)
     else:
         rt_df_new = pd.read_csv(map_monthly_csv)
@@ -520,10 +523,7 @@ def extract_monthly_raster_val(raster_dir, year, month, data, lon, lat, src_crs=
     """
 
     raster_file_name = get_monthly_raster_file_names(raster_dir, year, month, data)
-    raster_arr, raster_file = read_raster_as_arr(
-        raster_file_name,
-        change_dtype=data.startswith('SWB')
-    )
+    raster_file = rio.open(raster_file_name)
     if raster_file_name.endswith('.asc'):
         raster_crs = 'EPSG:5070'
     else:
@@ -532,8 +532,8 @@ def extract_monthly_raster_val(raster_dir, year, month, data, lon, lat, src_crs=
     if data == 'CDL':
         new_coords = reproject_coords(src_crs, raster_crs, [[lon, lat]])
         lon_reproj, lat_reproj = new_coords[0]
-    py, px = raster_file.index(lon_reproj, lat_reproj)
-    return raster_arr[py, px]
+    raster_val = raster_file.sample([(lon_reproj, lat_reproj)], indexes=0)
+    return next(raster_val)
 
 
 def download_data(input_df, data_dir, year_list=None, lat_col='Latitude', lon_col='Longitude',
@@ -611,7 +611,7 @@ def download_data(input_df, data_dir, year_list=None, lat_col='Latitude', lon_co
             raster_dir = cdl_data_path
         elif data.startswith('SWB'):
             raster_dir = swb_data_path
-        input_df[data] = input_df.apply(
+        input_df[data] = input_df.swifter.apply(
             lambda row: extract_monthly_raster_val(
                 raster_dir,
                 row[year_col],
