@@ -26,7 +26,7 @@ from .mlops import get_prediction_stats
 from .rasterops import read_raster_as_arr, reproject_coords, write_raster, create_long_lat_grid
 from .rasterops import get_monthly_raster_file_names, resample_raster, crop_raster, crop_rasters
 from .rasterops import get_raster_extent, map_nodata, create_raster_file_dict
-from .rasterops import generate_predictor_raster_values, get_ensemble_avg
+from .rasterops import generate_predictor_raster_values
 from .rasterops import reproject_raster_gdal, reproject_raster_gdal_syscall, correct_cdl_rasters
 
 
