@@ -1,10 +1,15 @@
+"""
+Provides methods for machine learning (ML) operations required for the MAP project.
+"""
+
 # Author: Sayantan Majumdar
-# Email: sayantan.majumdar@colostate.edu
+# Email: sayantan.majumdar@dri.edu
 
 
 import pandas as pd
 import numpy as np
 import pickle
+from typing import Any
 from lightgbm import LGBMRegressor
 from dask.distributed import Client
 from dask_ml.model_selection import GridSearchCV as DaskGCV
@@ -12,6 +17,7 @@ from dask_ml.model_selection import RandomizedSearchCV as DaskRCV
 from dask_jobqueue import SLURMCluster
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
 from sklearn.svm import LinearSVR
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
@@ -20,18 +26,25 @@ from sklearn.ensemble import BaggingRegressor
 from sklearn.model_selection import RepeatedStratifiedKFold, RepeatedKFold, GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.inspection import PartialDependenceDisplay as PDisp
-from .sysops import makedirs, make_proper_dir_name
+from sysops import makedirs, make_proper_dir_name
 
 
-def get_model_param_dict(random_state=0, use_dask=False):
+def get_model_param_dict(
+        random_state: int = 0,
+        use_dask: bool = False
+) -> tuple[dict[str, Any], dict[str, dict[str, list]]]:
+    """Get model object dictionaries and parameter dictionary for different models.
+
+    Args:
+        random_state (int): Random state (seed) for some ML algorithms.
+        use_dask (bool): Set True if using Dask in a distributed computing environment.
+
+    Returns:
+        A tuple of
+        dict (str, Any) : Dictionary of the model objects.
+        dict (str, dict (str, list)): Dictionary of models containing dictionary of the corresponding
+                                      hyperparameters.
     """
-    Get model object dictionaries and parameter dictionary for different models
-    :param random_state: PRNG seed
-    :param use_dask: Set True if using Dask in a distributed computing environment
-    :return: Dictionary of the model objects and Dictionary of models containing dictionary of the corresponding
-    hyperparameters as tuples
-    """
-
     n_jobs = -1
     if use_dask:
         n_jobs = 1
@@ -56,32 +69,32 @@ def get_model_param_dict(random_state=0, use_dask=False):
     }
 
     param_dict = {'LGBM': {
-        'n_estimators': [500],
-        'max_depth': [-1],
-        'learning_rate': [0.03],
-        'subsample': [1],
-        'colsample_bytree': [1],
-        'colsample_bynode': [1],
-        'path_smooth': [0],
-        'num_leaves': [127],
-        'min_child_samples': [10]
+        'n_estimators': [300, 400, 500, 800],
+        'max_depth': [16, 20, -1],
+        'learning_rate': [0.01, 0.05],
+        'subsample': [1, 0.9],
+        'colsample_bytree': [1, 0.9],
+        'colsample_bynode': [1, 0.9],
+        'path_smooth': [0., 0.1, 0.2],
+        'num_leaves': [127, 256],
+        'min_child_samples': [20, 30, 40]
     }, 'DRF': {
-        'n_estimators': [500],
-        'max_depth': [12, -1],
+        'n_estimators': [400, 500, 600],
+        'max_depth': [16, 20, 32, -1],
         'learning_rate': [1e-4],
-        'subsample': [0.99],
-        'colsample_bytree': [1.0],
-        'reg_lambda': [0],
-        'path_smooth': [0],
-        'num_leaves': [200],
-        'min_child_samples': [30],
+        'subsample': [0.8, 0.5],
+        'colsample_bytree': [0.8, 0.9],
+        'reg_lambda': [0, 0.1],
+        'path_smooth': [0, 0.1],
+        'num_leaves': [100, 150, 200],
+        'min_child_samples': [25, 28, 30],
     }, 'RF': {
-        'n_estimators': [500],
-        #'max_features': [10, 12, 8, 9, 3],
-        'max_depth': [14],
-        'max_leaf_nodes': [None],
-        'max_samples': [None],
-        'min_samples_leaf': [2]
+        'n_estimators': [300, 400, 500],
+        'max_features': [5, 6, 7],
+        'max_depth': [8, 15, 20, None],
+        'max_leaf_nodes': [16, 20],
+        'max_samples': [None, 0.9, 0.8, 0.7],
+        'min_samples_leaf': [1, 2]
     }, 'ETR': {
         'n_estimators': [300, 400, 500],
         'max_features': [5, 6, 7],
@@ -114,33 +127,53 @@ def get_model_param_dict(random_state=0, use_dask=False):
     return model_dict, param_dict
 
 
-def build_crop_ml_models(x_train, x_test, y_train, y_test, year_train, year_test, year_col, crop_col, model_dir,
-                         model_name='DRF', random_state=43, load_model=False, fold_count=5, repeats=3, x_scaler=None,
-                         y_scaler=None, randomized_search=False, stratified_kfold=False, use_dask=False):
-    """
-    Build individual ML models for each crop type
-    :param x_train: X_train numpy array or pandas dataframe
-    :param x_test: X_test numpy array or pandas dataframe
-    :param y_train: y_train numpy array
-    :param y_test: y_test numpy array
-    :param year_train: Year train data frame to append to train data
-    :param year_test: Year test data frame to append to test data
-    :param year_col: Name of the year column
-    :param crop_col: Name of the crop column
-    :param model_dir: Model directory to store/load model
-    :param model_name: ML model name as per the model_dict keys
-    :param random_state: PRNG seed
-    :param load_model: Set model name to load existing model
-    :param fold_count: Number of folds for KFold
-    :param repeats: Number of repeats for KFold
-    :param x_scaler: X scaler object
-    :param y_scaler: y scaler object
-    :param randomized_search: Set True to use the more computationally efficient RandomizedSearchCV
-    :param stratified_kfold: Set True to use RepeatedStratifiedKFold based on the crop type
-    :param use_dask: Flag for using dask
-    :return: List of trained models
-    """
+def build_crop_ml_models(
+        x_train: np.ndarray | pd.DataFrame,
+        x_test: np.ndarray | pd.DataFrame,
+        y_train: np.array,
+        y_test: np.array,
+        year_train: pd.DataFrame,
+        year_test: pd.DataFrame,
+        year_col: str,
+        crop_col: str,
+        model_dir: str,
+        model_name: str = 'DRF',
+        random_state: int = 43,
+        load_model: bool = False,
+        fold_count: int = 5,
+        repeats: int = 3,
+        x_scaler: MinMaxScaler | None = None,
+        y_scaler: MinMaxScaler | None = None,
+        randomized_search: bool = False,
+        stratified_kfold: bool = False,
+        use_dask: bool = False
+) -> list:
+    """Build individual ML models for each crop type.
 
+    Args:
+        x_train (np.ndarray or pd.DataFrame): X_train numpy array or pandas dataframe.
+        x_test (np.ndarray or pd.DataFrame): X_test numpy array or pandas dataframe.
+        y_train (np.array): y_train numpy array.
+        y_test (np.array): y_test numpy array.
+        year_train (pd.DataFrame): Year train data frame to append to train data.
+        year_test (pd.DataFrame): Year test data frame to append to test data.
+        year_col (str): Name of the year column.
+        crop_col (str): Name of the crop column.
+        model_dir (str): Model directory to store/load model.
+        model_name (str): ML model name as per the model_dict keys.
+        random_state (int): Random state (seed) for some ML algorithms.
+        load_model (bool): Set model name to load existing model.
+        fold_count (int): Number of folds for KFold.
+        repeats (int): Number of repeats for KFold.
+        x_scaler (MinMaxScaler or None): X scaler object.
+        y_scaler (MinMaxScaler or None): y scaler object.
+        randomized_search (bool): Set True to use the more computationally efficient RandomizedSearchCV.
+        stratified_kfold (bool): Set True to use RepeatedStratifiedKFold based on the crop type.
+        use_dask (bool): Flag for using dask.
+
+    Returns:
+        A list of trained models.
+    """
     crop_train_arr = x_train[crop_col].to_numpy().ravel()
     crop_test_arr = x_test[crop_col].to_numpy().ravel()
     models = []
@@ -156,7 +189,7 @@ def build_crop_ml_models(x_train, x_test, y_train, y_test, year_train, year_test
         y_test_data = y_test[crop_test_arr == crop]
         year_train_df = year_train[crop_train_check]
         year_test_df = year_test[crop_test_check]
-        crop_model_name = model_name + '_' + str(crop)
+        crop_model_name = f'{model_name}_{crop}'
         model = build_ml_model(x_train_data, y_train_data, model_dir, crop_model_name, random_state, load_model,
                                fold_count, repeats, y_scaler, randomized_search, stratified_kfold, use_dask)
         models.append(model)
@@ -165,31 +198,45 @@ def build_crop_ml_models(x_train, x_test, y_train, y_test, year_train, year_test
                                          crop_col)
         merged_pred_df = pd.concat([merged_pred_df, pred_df])
     calc_train_test_metrics(merged_pred_df, crop_col, year_col)
-    merged_pred_df.to_csv(model_dir + 'Merged_Crop_Predictions_{}.csv'.format(model_name), index=False)
+    merged_pred_df.to_csv(f'{model_dir}Merged_Crop_Predictions_{model_name}.csv', index=False)
     return models
 
 
-def build_ml_model(x_train, y_train, model_dir, model_name='DRF', random_state=43, load_model=False,
-                   fold_count=5, repeats=3, y_scaler=None, randomized_search=False, stratified_kfold=False,
-                   use_dask=False, **kwargs):
-    """
-    Build an ML model
-    :param x_train: X_train numpy array or pandas dataframe
-    :param y_train: y_train numpy array
-    :param model_dir: Model directory to store/load model
-    :param model_name: ML model name as per the model_dict keys
-    :param random_state: PRNG seed
-    :param load_model: Set model name to load existing model
-    :param fold_count: Number of folds for KFold. Performs LOOCV if <=0
-    :param repeats: Number of repeats for KFold
-    :param y_scaler: y scaler object
-    :param randomized_search: Set True to use the more computationally efficient RandomizedSearchCV
-    :param stratified_kfold: Set True to use RepeatedStratifiedKFold based on the crop type
-    :param use_dask: Flag for using dask
-    :param kwargs: Pass the 'crop_train' or 'year_train' Pandas dataframe if stratified_kfold is True
-    :return: Trained model object
-    """
+def build_ml_model(
+        x_train: np.ndarray | pd.DataFrame,
+        y_train: np.array,
+        model_dir: str,
+        model_name: str = 'DRF',
+        random_state: int = 43,
+        load_model: bool = False,
+        fold_count: int = 5,
+        repeats: int = 3,
+        y_scaler: MinMaxScaler | None = None,
+        randomized_search: bool = False,
+        stratified_kfold: bool = False,
+        use_dask: bool = False,
+        **kwargs: Any
+) -> Any:
+    """Build an ML model.
 
+    Args:
+        x_train (np.ndarray or pd.DataFrame): X_train numpy array or pandas dataframe.
+        y_train (np.array): y_train numpy array.
+        model_dir (str): Model directory to store/load model.
+        model_name (str): ML model name as per the model_dict keys.
+        random_state (int): Random state (seed) for some ML algorithms.
+        load_model (bool): Set model name to load existing model.
+        fold_count (int): Number of folds for KFold.
+        repeats (int): Number of repeats for KFold.
+        y_scaler (MinMaxScaler or None): y scaler object.
+        randomized_search (bool): Set True to use the more computationally efficient RandomizedSearchCV.
+        stratified_kfold (bool): Set True to use RepeatedStratifiedKFold based on the crop type.
+        use_dask (bool): Flag for using dask.
+        kwargs (dict (str, str)): Pass the 'crop_train' or 'year_train' Pandas dataframe if stratified_kfold is True.
+
+    Returns:
+        Trained model object.
+    """
     model_file = model_dir + model_name
     if not load_model:
         dask_client = None
@@ -200,7 +247,6 @@ def build_ml_model(x_train, y_train, model_dir, model_name='DRF', random_state=4
                 processes=1,
                 memory="10G",
                 walltime="00:30:00",
-                interface='ib0',
                 env_extra=['#SBATCH --out=Foundry-Dask-%j.out']
             )
             cluster.adapt(
@@ -218,7 +264,7 @@ def build_ml_model(x_train, y_train, model_dir, model_name='DRF', random_state=4
             stratify_labels = kwargs['stratify_labels'].to_numpy().ravel()
             cv = RepeatedStratifiedKFold(n_splits=fold_count, n_repeats=repeats, random_state=random_state)
             cv = cv.split(x_train, stratify_labels)
-        makedirs([make_proper_dir_name(model_dir)])
+        makedirs(make_proper_dir_name(model_dir))
         print('\nSearching best params for {}...'.format(model_name))
         if '_' in model_name:
             model_name = model_name[: model_name.find('_')]
@@ -242,17 +288,17 @@ def build_ml_model(x_train, y_train, model_dir, model_name='DRF', random_state=4
                 return_train_score=True
             )
         model_grid.fit(x_train, y_train)
-        pickle.dump(model, open(model_file, mode='wb+'))
         get_grid_search_stats(model_grid, y_scaler)
         model = model_grid.best_estimator_
         print('Best params: ', model_grid.best_params_)
+        pickle.dump(model, open(model_file, mode='wb+'))
         if dask_client:
             dask_client.close()
     else:
         model = pickle.load(open(model_file, mode='rb'))
     if model_name in ['RF', 'ETR', 'LGBM', 'DRF']:
         imp_dict = {'Features': list(x_train.columns)}
-        f_imp = np.array(model.feature_importances_).astype(np.float)
+        f_imp = np.array(model.feature_importances_).astype(float)
         if model_name in ['LGBM', 'DRF']:
             f_imp /= np.sum(f_imp)
         imp_dict['F_IMP'] = np.round(f_imp, 5)
@@ -262,15 +308,21 @@ def build_ml_model(x_train, y_train, model_dir, model_name='DRF', random_state=4
     return model
 
 
-def calc_train_test_metrics(pred_df, crop_col=None, year_col=None):
-    """
-    Calculate train and test metrics from the prediction data frames
-    :param pred_df: Prediction data frame
-    :param crop_col: Name of the crop column
-    :param year_col: Name of the year column
-    :return: None
-    """
+def calc_train_test_metrics(
+        pred_df: pd.DataFrame,
+        crop_col: str | None = None,
+        year_col: str | None = None
+) -> None:
+    """Calculate train and test metrics from the prediction data frames.
 
+    Args:
+        pred_df (pd.DataFrame): Prediction data frame.
+        crop_col (str or None): Name of the crop column.
+        year_col (str or None): Name of the year column.
+
+    Returns
+        None
+    """
     train_data = pred_df[pred_df.DATA == 'TRAIN']
     test_data = pred_df[pred_df.DATA == 'TEST']
     train_actual = train_data.Actual_GW.to_numpy().ravel()
@@ -306,14 +358,16 @@ def calc_train_test_metrics(pred_df, crop_col=None, year_col=None):
                 print('R2:', r2, 'RMSE:', rmse, 'MAE:', mae)
 
 
-def get_grid_search_stats(gs_model, y_scaler=None):
-    """
-    Get GridSearchCV stats
-    :param gs_model: Fitted GridSearchCV/RandomizedSearchCV object
-    :param y_scaler:y scaler object
-    :return:
-    """
+def get_grid_search_stats(gs_model: Any, y_scaler: MinMaxScaler | None = None) -> None:
+    """Get GridSearchCV stats.
 
+    Args:
+        gs_model: Fitted GridSearchCV/RandomizedSearchCV (can be Dask variants also) object.
+        y_scaler (MinMaxScaler or None):y scaler object.
+
+    Returns:
+        None
+    """
     scores = gs_model.cv_results_
     print('Train Results...')
     r2 = scores['mean_train_r2'].mean()
@@ -333,15 +387,21 @@ def get_grid_search_stats(gs_model, y_scaler=None):
     print('R2:', r2, 'RMSE:', rmse, 'MAE:', mae)
 
 
-def get_prediction_stats(actual_values, pred_values, precision=3):
-    """
-    Get prediction statistics R^2, MAE, RMSE
-    :param actual_values: Numpy array of actual values
-    :param pred_values: Numpy array of predicted values
-    :param precision: Floating point precision to use
-    :return: R^2, MAE, RMSE as tuples
-    """
+def get_prediction_stats(
+        actual_values: np.array,
+        pred_values: np.array,
+        precision: int = 3
+) -> tuple[float, float, float]:
+    """Get prediction statistics R^2, MAE, RMSE.
 
+    Args:
+        actual_values (np.array): Numpy array of actual values.
+        pred_values (np.array): Numpy array of predicted values.
+        precision (int): Floating point precision to use.
+
+    Returns:
+        A tuple of R^2, MAE, and RMSE.
+    """
     r2, mae, rmse = (np.nan,) * 3
     if actual_values.size and pred_values.size:
         r2 = np.round(r2_score(actual_values, pred_values), precision)
@@ -350,27 +410,44 @@ def get_prediction_stats(actual_values, pred_values, precision=3):
     return r2, mae, rmse
 
 
-def get_prediction_results(model, x_train, x_test, y_train, y_test, x_scaler, y_scaler, year_train, year_test,
-                           model_dir, model_name='DRF', year_col='ReportYear',  crop_col='Crop_CDL',
-                           crop_train=None, crop_test=None):
-    """
-    Get model prediction results
-    :param model: Trained model object
-    :param x_train: X_train numpy array or pandas dataframe
-    :param x_test: X_test numpy array or pandas dataframe
-    :param y_train: y_train numpy array
-    :param y_test: y_test numpy array
-    :param x_scaler: X scaler object
-    :param y_scaler: y scaler object
-    :param year_train: Year train data frame to append to train data
-    :param year_test: Year test data frame to append to test data
-    :param model_dir: Model directory to store/load results
-    :param model_name: Model name
-    :param year_col: Name of the year column
-    :param crop_col: Name of the crop column
-    :param crop_train: Crop train data frame to append to train data
-    :param crop_test: Crop test data frame to append to test data
-    :return: Prediction data frame
+def get_prediction_results(
+        model: Any,
+        x_train: np.ndarray | pd.DataFrame,
+        x_test: np.ndarray | pd.DataFrame,
+        y_train: np.array,
+        y_test: np.array,
+        x_scaler: MinMaxScaler | None,
+        y_scaler: MinMaxScaler | None,
+        year_train: pd.DataFrame,
+        year_test: pd.DataFrame,
+        model_dir: str,
+        model_name: str = 'DRF',
+        year_col: str = 'ReportYear',
+        crop_col: str = 'Crop(s)',
+        crop_train: pd.DataFrame | None = None,
+        crop_test: pd.DataFrame | None = None
+) -> pd.DataFrame:
+    """Get model prediction results.
+
+    Args:
+        model (Any): Trained model object.
+        x_train (np.ndarray or pd.DataFrame): X_train numpy array or pandas dataframe.
+        x_test (np.ndarray or pd.DataFrame): X_test numpy array or pandas dataframe.
+        y_train (np.array): y_train numpy array.
+        y_test (np.array): y_test numpy array.
+        x_scaler (MinMaxScaler or None): X scaler object.
+        y_scaler (MinMaxScaler or None): y scaler object.
+        year_train (pd.DataFrame): Year train data frame to append to train data.
+        year_test (pd.DataFrame): Year test data frame to append to test data.
+        model_dir (str): Model directory to store/load results.
+        model_name (str): Model name.
+        year_col (str): Name of the year column.
+        crop_col (str): Name of the crop column.
+        crop_train (str): Crop train data frame to append to train data.
+        crop_test (str): Crop test data frame to append to test data.
+
+    Returns:
+        pd.DataFrame: Modified prediction data frame.
     """
 
     y_pred_train = np.abs(model.predict(x_train))
@@ -405,19 +482,28 @@ def get_prediction_results(model, x_train, x_test, y_train, y_test, x_scaler, y_
     return pred_df
 
 
-def create_pdplots(x_train, model, feature_names, outdir, scaling=True, random_state=0):
-    """
-    Create partial dependence plots
-    :param x_train: Training set
-    :param model: Random Forest model
-    :param feature_names: Feature names for which PDP will be generated. Set 'All' to use all the features used for
-    model training.
-    :param outdir: Output directory for storing partial dependence plot
-    :param scaling: Set False if scaling is not used for the model
-    :param random_state: PRNG seed
-    :return: None
-    """
+def create_pdplots(
+        x_train: pd.DataFrame,
+        model: Any,
+        feature_names: tuple[str, ...],
+        outdir: str,
+        scaling: bool = True,
+        random_state: int = 0
+) -> None:
+    """Create partial dependence plots for ensemble tree-based algorithms (DRF, RF, LGBM, ETR).
 
+    Args:
+        x_train (pd.DataFrame): Training set.
+        model (Any): Fitted model object.
+        feature_names (tuple (str, ...)): Feature names for which PDP will be generated. Set 'All' to use all the
+                                          features used for model training.
+        outdir (str): Output directory for storing partial dependence plot.
+        scaling (bool): Set False if scaling is not used for the model.
+        random_state (int): Random state for PDP.
+
+    Returns:
+        None
+    """
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -425,14 +511,18 @@ def create_pdplots(x_train, model, feature_names, outdir, scaling=True, random_s
     matplotlib.rcParams.update({'font.size': 16})
     feature_dict = {
         'ppt': 'PRISM Precipitation',
+        'PPT': 'PRISM Precipitation',
         'SSEBop': 'SSEBop ET',
         'Relative_SSEBop': 'Relative SSEBop ET',
         'SM_IDAHO': 'Soil Moisture Change',
         'SWB_IRR': 'Irrigation Demand',
         'HSG_INF': 'Infiltration Rate',
         'tmax': r'PRISM Max Temperature',
+        'TMAX': r'PRISM Max Temperature',
         'tmin': r'PRISM Min Temperature',
+        'TMIN': r'PRISM Min Temperature',
         'tmean': r'PRISM Mean Temperature',
+        'TMEAN': r'PRISM Mean Temperature',
         'RO':  'Surface Runoff',
         'Latitude': r'Latitude',
         'Longitude': r'Longitude',
@@ -460,7 +550,7 @@ def create_pdplots(x_train, model, feature_names, outdir, scaling=True, random_s
                 unit = 'mm'
         else:
             unit = 'Normalized'
-        feature_dict[feature] += ' ({})'.format(unit)
+        feature_dict[feature] += f' ({unit})'
         if feature in feature_names:
             pdp_feature_dict[feature] = feature_dict[feature]
     x_train = x_train.rename(columns=pdp_feature_dict)
