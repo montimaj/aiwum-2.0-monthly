@@ -862,7 +862,7 @@ def create_map_extent_rasters(
 
 def create_map_prediction_rasters(
         ml_model: Any,
-        pred_csv_dir: str,
+        pred_file_dir: str,
         output_dir: str,
         x_scaler: MinMaxScaler,
         y_scaler: MinMaxScaler,
@@ -875,7 +875,7 @@ def create_map_prediction_rasters(
 
     Args:
         ml_model (Any): Pre-fitted ML model object. This can be any sklearn or LightGBM regressor objects.
-        pred_csv_dir (str): Directory containing the prediction CSVs.
+        pred_file_dir (str): Directory containing the predictor parquet files.
         output_dir (str): Output directory.
         x_scaler (MinMaxScaler): Predictor (X) scaler object.
         y_scaler (MinMaxScaler): Response (y) scaler object.
@@ -891,13 +891,13 @@ def create_map_prediction_rasters(
     """
     pred_raster_dir = make_proper_dir_name(output_dir + 'Pred_Raster')
     if not load_files:
-        pred_df_list = glob(pred_csv_dir + '*.csv')
+        pred_df_list = glob(pred_file_dir + '*.parquet')
         makedirs(pred_raster_dir)
         other_crop_col = crop_col + '_Other'
         unit_dict = {True: 'm3', False: 'mm'}
         for pred_df_file in pred_df_list:
             print('Predicting', pred_df_file)
-            pred_df = pd.read_csv(pred_df_file, dtype=float)
+            pred_df = pd.read_parquet(pred_df_file, dtype=float)
             pred_df_other_col_idx = pred_df.index[pred_df[other_crop_col] == 1]
             pred_df = pred_df.drop(columns=[other_crop_col])
             pred_arr = pred_df.to_numpy().copy()
@@ -945,8 +945,8 @@ def create_map_prediction_rasters(
             if volume_units:
                 pred_wu *= 2.471 * 4.047  # acremm/acre to acremm/(1e-2 km2) to m3/(1e-2 km2)
             pred_wu_suffix = f'{pred_raster_dir}AIWUM2_100m_{unit_dict[volume_units]}_{year}_{month}'
-            pred_wu_csv = pred_wu_suffix + '.csv'
-            pred_df.to_csv(pred_wu_csv, index=False)
+            pred_wu_file = pred_wu_suffix + '.parquet'
+            pred_df.to_parquet(pred_wu_file, index=False)
             pred_wu_raster = pred_wu_suffix + '.tif'
             write_raster(
                 pred_wu, map_extent_raster_file,
@@ -965,7 +965,7 @@ def create_map_prediction_rasters(
     return pred_raster_dir
 
 
-def create_map_prediction_csv(
+def create_map_prediction_files(
         file_dirs: tuple[str, ...],
         data_list: tuple[str, ...],
         data_start_month: int,
@@ -978,7 +978,7 @@ def create_map_prediction_csv(
         load_files: bool = False,
         verbose: bool = False
 ) -> str:
-    """Create prediction CSVs from predictor data sets.
+    """Create predictor parquet files from predictor data sets.
 
     Args:
         file_dirs (tuple (str, ...)): Input file directories as a tuple in the order of SSEBop, CDL, PRISM, GEE Files.
@@ -996,9 +996,9 @@ def create_map_prediction_csv(
         verbose (bool): Set True to get additional details about intermediate steps.
 
     Returns:
-        str: Directory containing yearly Prediction CSVs.
+        str: Directory containing yearly Prediction files (parquet).
     """
-    pred_csv_dir = make_proper_dir_name(output_dir + 'Pred_CSV')
+    pred_file_dir = make_proper_dir_name(output_dir + 'Predictor_Files')
     cdl_dict = defaultdict(
         lambda: 'Other', {
             0: 'NaN',
@@ -1009,8 +1009,8 @@ def create_map_prediction_csv(
             92: 'Fish Culture',
         })
     if not load_files:
-        print('Creating Predictor CSVs...')
-        makedirs(pred_csv_dir)
+        print('Creating Predictor ...')
+        makedirs(pred_file_dir)
         year = year_list[0]
         cdl_file = map_extent_raster_dict[year][1]
         grid_dir = make_proper_dir_name(output_dir + 'Grids')
@@ -1035,7 +1035,7 @@ def create_map_prediction_csv(
         for year in year_list:
             cdl_arr, cdl_file = map_extent_raster_dict[year]
             for month in range(data_start_month, data_end_month + 1):
-                pred_df_file = f'{pred_csv_dir}Pred_{year}_{calendar.month_abbr[month]}.csv'
+                pred_df_file = f'{pred_file_dir}Pred_{year}_{calendar.month_abbr[month]}.parquet'
                 print('Creating', pred_df_file, '...')
                 pred_df = pd.DataFrame()
                 if verbose:
@@ -1062,8 +1062,8 @@ def create_map_prediction_csv(
                 pred_df.loc[pred_df[nan_crop_column] == 1, data_list[0]] = np.nan
                 pred_df = pred_df.drop(columns=[nan_crop_column])
                 pred_df = reindex_df(pred_df, column_names=None)
-                pred_df.to_csv(pred_df_file, index=False)
-    return pred_csv_dir
+                pred_df.to_parquet(pred_df_file, index=False)
+    return pred_file_dir
 
 
 def create_prediction_map(
@@ -1080,7 +1080,7 @@ def create_prediction_map(
         data_start_month: int,
         data_end_month: int,
         crop_col: str,
-        load_pred_csv: bool = False,
+        load_pred_file: bool = False,
         load_map_extent: bool = False,
         load_pred_raster: bool = False,
         x_scaler: MinMaxScaler | None = None,
@@ -1105,7 +1105,7 @@ def create_prediction_map(
         data_end_month (int): Data end month in integer format, i.e., 4, 5, etc.
         crop_col (str): Name of the crop column in the original VMP data.
         load_map_extent (bool): Set True to load existing MAP extent rasters.
-        load_pred_csv (bool): Set True to load existing Prediction CSV files.
+        load_pred_file (bool): Set True to load existing Prediction parquet files.
         load_pred_raster (bool): Set True to load existing Prediction rasters.
         x_scaler (MinMaxScaler): Predictor (X) scaler object.
         y_scaler (MinMaxScaler): Response (y) scaler object.
@@ -1122,19 +1122,19 @@ def create_prediction_map(
         input_cdl_dir, nhd_shp_file, lanid_dir,
         field_shp_dir, load_map_extent
     )
-    pred_csv_dir = create_map_prediction_csv(
+    pred_file_dir = create_map_prediction_files(
         file_dirs, data_list,
         data_start_month, data_end_month,
         year_list, map_extent_raster_dict,
         output_dir, crop_col,
-        src_crs, load_pred_csv
+        src_crs, load_pred_file
     )
     pred_raster_dir = create_map_prediction_rasters(
-        ml_model, pred_csv_dir, output_dir,
+        ml_model, pred_file_dir, output_dir,
         x_scaler, y_scaler, map_extent_raster_dict,
         crop_col, load_pred_raster, volume_units
     )
-    return pred_csv_dir, pred_raster_dir, map_extent_raster_dir
+    return pred_file_dir, pred_raster_dir, map_extent_raster_dir
 
 
 def compare_aiwums_map(

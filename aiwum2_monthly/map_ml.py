@@ -91,7 +91,7 @@ def run_map_ml(args: argparse.Namespace) -> None:
                       Note that for this project we only process outliers above the boxplot upper limit for 1-3.
         compare_aiwums -> Set True to compare AIWUM 1.1 and 2.0 monthly rasters.
         load_pred_raster -> Load existing prediction rasters.
-        load_pred_csv -> Load existing prediction CSVs.
+        load_pred_file -> Load existing predictor parquet files.
         load_map_extent -> Set True to load existing MAP extent rasters.
         aiwum1_monthly_tot_dir -> AIWUM 1.1 monthly prediction raster path, required if compare-aiwums is True.
         pred_year_list -> Years to predict.
@@ -208,7 +208,7 @@ def run_map_ml(args: argparse.Namespace) -> None:
         tuple(pred_data_list), args.cdl_path, args.nhd_path,
         args.lanid_path, args.field_shp_dir,
         args.pred_start_month, args.pred_end_month,
-        args.crop_shp, args.load_pred_csv,
+        args.crop_shp, args.load_pred_file,
         args.load_map_extent, args.load_pred_raster,
         x_scaler, y_scaler, args.volume_units
     )
@@ -330,8 +330,8 @@ if __name__ == '__main__':
                         help='Set True to compare AIWUM 1.1 and 2.0 monthly rasters')
     parser.add_argument('--load-pred-raster', type=boolean_string, default=False,
                         help='Load existing prediction rasters.')
-    parser.add_argument('--load-pred-csv', type=boolean_string, default=False,
-                        help='Load existing prediction CSVs.')
+    parser.add_argument('--load-pred-file', type=boolean_string, default=False,
+                        help='Load existing predictor parquet files.')
     parser.add_argument('--load-map-extent', type=boolean_string, default=False,
                         help='Set True to load existing MAP extent rasters.')
     parser.add_argument('--aiwum1-monthly-tot-dir', type=str,

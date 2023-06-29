@@ -92,7 +92,7 @@ python map_ml.py \
 --pred-year-list <year1 year2 ... yearn> \
 --load-map-csv <True/False> \
 --load-pred-raster <True/False> \
---load-pred-csv <True/False> \
+--load-pred-file <True/False> \
 --load-map-extent <True/False> \
 --model-name <model-name> \
 --compare-aiwums <True/False> \
@@ -120,7 +120,7 @@ python map_ml.py \
 --pred-year-list 2014 2015 2016 2017 2018 2019 2020 2021 \
 --load-map-csv True \
 --load-pred-raster False \
---load-pred-csv False \
+--load-pred-file False \
 --load-map-extent True \
 --model-name LGBM \
 --compare-aiwums False \
@@ -149,7 +149,7 @@ python map_ml.py `
 --pred-year-list <year1 year2 ... yearn> `
 --load-map-csv <True/False> `
 --load-pred-raster <True/False> `
---load-pred-csv <True/False> `
+--load-pred-file <True/False> `
 --load-map-extent <True/False> `
 --model-name <model-name> `
 --compare-aiwums <True/False> `
@@ -177,7 +177,7 @@ python map_ml.py `
 --pred-year-list 2014 2015 2016 2017 2018 2019 2020 2021 `
 --load-map-csv False `
 --load-pred-raster False `
---load-pred-csv False `
+--load-pred-file False `
 --load-map-extent False `
 --model-name LGBM `
 --compare-aiwums False `
@@ -191,7 +191,7 @@ usage: map_ml.py [-h] --input-rt-shp INPUT_RT_SHP [--site-id-shp SITE_ID_SHP] [-
                  [--load-files LOAD_FILES] [--load-data LOAD_DATA] [--load-model LOAD_MODEL] [--use-sub-cols USE_SUB_COLS] [--sub-cols SUB_COLS [SUB_COLS ...]] [--lat-pump LAT_PUMP] [--lon-pump LON_PUMP] [--field-permit-col FIELD_PERMIT_COL] [--test-size TEST_SIZE] [--random-state RANDOM_STATE] [--output-dir OUTPUT_DIR] [--model-dir MODEL_DIR] [--pred-attr PRED_ATTR]
                  [--pred-start-month PRED_START_MONTH] [--pred-end-month PRED_END_MONTH] --data-list DATA_LIST [DATA_LIST ...] [--gee-scale GEE_SCALE] [--prism-path PRISM_PATH] --cdl-path CDL_PATH --lanid-path LANID_PATH --nhd-path NHD_PATH [--openet-path OPENET_PATH] [--eemetric-path EEMETRIC_PATH] [--pt-jpl-path PT_JPL_PATH] [--sims-path SIMS_PATH] --map-extent-file
                  MAP_EXTENT_FILE [--stratified-kfold STRATIFIED_KFOLD] --train-year-list TRAIN_YEAR_LIST [TRAIN_YEAR_LIST ...] [--scaling SCALING] [--split-strategy SPLIT_STRATEGY] [--test-years TEST_YEARS [TEST_YEARS ...]] [--load-map-csv LOAD_MAP_CSV] [--model-name MODEL_NAME] [--randomized-search RANDOMIZED_SEARCH] [--fold-count FOLD_COUNT] [--repeats REPEATS]
-                 [--drop-attr DROP_ATTR [DROP_ATTR ...]] [--outlier-op OUTLIER_OP] [--compare-aiwums COMPARE_AIWUMS] [--load-pred-raster LOAD_PRED_RASTER] [--load-pred-csv LOAD_PRED_CSV] [--load-map-extent LOAD_MAP_EXTENT] [--aiwum1-monthly-tot-dir AIWUM1_MONTHLY_TOT_DIR] --pred-year-list PRED_YEAR_LIST [PRED_YEAR_LIST ...] [--use-dask USE_DASK] --swb-data-path SWB_DATA_PATH
+                 [--drop-attr DROP_ATTR [DROP_ATTR ...]] [--outlier-op OUTLIER_OP] [--compare-aiwums COMPARE_AIWUMS] [--load-pred-raster LOAD_PRED_RASTER] [--load-pred-file LOAD_PRED_FILE] [--load-map-extent LOAD_MAP_EXTENT] [--aiwum1-monthly-tot-dir AIWUM1_MONTHLY_TOT_DIR] --pred-year-list PRED_YEAR_LIST [PRED_YEAR_LIST ...] [--use-dask USE_DASK] --swb-data-path SWB_DATA_PATH
                  [--hsg-to-inf HSG_TO_INF] [--volume-units VOLUME_UNITS] [--pdp-plot-features PDP_PLOT_FEATURES [PDP_PLOT_FEATURES ...]] [--calc-cc CALC_CC] [--calc-relative-et CALC_RELATIVE_ET] [--calc-eff-ppt CALC_EFF_PPT]
 
 Flags to run AIWUM 2.0
@@ -295,8 +295,8 @@ options:
                         Set True to compare AIWUM 1.1 and 2.0 monthly rasters (default: False)
   --load-pred-raster LOAD_PRED_RASTER
                         Load existing prediction rasters. (default: False)
-  --load-pred-csv LOAD_PRED_CSV
-                        Load existing prediction CSVs. (default: False)
+  --load-pred-file LOAD_PRED_FILE
+                        Load existing predictor parquet files. (default: False)
   --load-map-extent LOAD_MAP_EXTENT
                         Set True to load existing MAP extent rasters. (default: False)
   --aiwum1-monthly-tot-dir AIWUM1_MONTHLY_TOT_DIR
