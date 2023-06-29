@@ -597,7 +597,7 @@ def create_raster_file_dict(
     for file_dir in file_dirs:
         if 'GEE_Files' in file_dir:
             for gee_file in gee_files:
-                raster_file = get_monthly_raster_file_names(file_dir, year, 1, gee_file)
+                raster_file = get_monthly_raster_file_names(file_dir, year, month, gee_file)
                 raster_file_dict[gee_file] = raster_file
         elif 'PRISM' in file_dir:
             for prism_file in prism_files:
