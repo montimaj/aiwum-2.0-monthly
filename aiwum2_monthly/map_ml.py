@@ -94,7 +94,6 @@ def run_map_ml(args: argparse.Namespace) -> None:
         load_pred_csv -> Load existing prediction CSVs.
         load_map_extent -> Set True to load existing MAP extent rasters.
         aiwum1_monthly_tot_dir -> AIWUM 1.1 monthly prediction raster path, required if compare-aiwums is True.
-        comp_aiwum_verbose -> Set True for extra info during AIWUM comparison.
         pred_year_list -> Years to predict.
         use_dask -> Flag for using dask.
         swb_data_path -> Path to the SWB data sets.
@@ -211,8 +210,7 @@ def run_map_ml(args: argparse.Namespace) -> None:
         args.pred_start_month, args.pred_end_month,
         args.crop_shp, args.load_pred_csv,
         args.load_map_extent, args.load_pred_raster,
-        args.comp_aiwum_verbose, x_scaler, y_scaler,
-        args.volume_units
+        x_scaler, y_scaler, args.volume_units
     )
     if args.compare_aiwums:
         compare_aiwums_map(
@@ -338,8 +336,6 @@ if __name__ == '__main__':
                         help='Set True to load existing MAP extent rasters.')
     parser.add_argument('--aiwum1-monthly-tot-dir', type=str,
                         help='AIWUM 1.1 monthly prediction raster path, required if compare-aiwums is True')
-    parser.add_argument('--comp-aiwum-verbose', type=boolean_string, default=False,
-                        help='Set True for extra info during AIWUM comparison')
     parser.add_argument('--pred-year-list', type=int, nargs='+', required=True, help='Years to predict')
     parser.add_argument('--use-dask', type=boolean_string, default=False, help='Set False to disable Dask')
     parser.add_argument('--swb-data-path', type=str, required=True, help='Path to SWB data')

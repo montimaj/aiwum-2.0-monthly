@@ -121,7 +121,7 @@ python map_ml.py \
 --load-map-csv True \
 --load-pred-raster False \
 --load-pred-csv False \
---load-map-extent False \
+--load-map-extent True \
 --model-name LGBM \
 --compare-aiwums False \
 --aiwum1-monthly-tot-dir ../AIWUM2_Data/Inputs/AIWUM1_Monthly_Total/
@@ -191,8 +191,8 @@ usage: map_ml.py [-h] --input-rt-shp INPUT_RT_SHP [--site-id-shp SITE_ID_SHP] [-
                  [--load-files LOAD_FILES] [--load-data LOAD_DATA] [--load-model LOAD_MODEL] [--use-sub-cols USE_SUB_COLS] [--sub-cols SUB_COLS [SUB_COLS ...]] [--lat-pump LAT_PUMP] [--lon-pump LON_PUMP] [--field-permit-col FIELD_PERMIT_COL] [--test-size TEST_SIZE] [--random-state RANDOM_STATE] [--output-dir OUTPUT_DIR] [--model-dir MODEL_DIR] [--pred-attr PRED_ATTR]
                  [--pred-start-month PRED_START_MONTH] [--pred-end-month PRED_END_MONTH] --data-list DATA_LIST [DATA_LIST ...] [--gee-scale GEE_SCALE] [--prism-path PRISM_PATH] --cdl-path CDL_PATH --lanid-path LANID_PATH --nhd-path NHD_PATH [--openet-path OPENET_PATH] [--eemetric-path EEMETRIC_PATH] [--pt-jpl-path PT_JPL_PATH] [--sims-path SIMS_PATH] --map-extent-file
                  MAP_EXTENT_FILE [--stratified-kfold STRATIFIED_KFOLD] --train-year-list TRAIN_YEAR_LIST [TRAIN_YEAR_LIST ...] [--scaling SCALING] [--split-strategy SPLIT_STRATEGY] [--test-years TEST_YEARS [TEST_YEARS ...]] [--load-map-csv LOAD_MAP_CSV] [--model-name MODEL_NAME] [--randomized-search RANDOMIZED_SEARCH] [--fold-count FOLD_COUNT] [--repeats REPEATS]
-                 [--drop-attr DROP_ATTR [DROP_ATTR ...]] [--outlier-op OUTLIER_OP] [--compare-aiwums COMPARE_AIWUMS] [--load-pred-raster LOAD_PRED_RASTER] [--load-pred-csv LOAD_PRED_CSV] [--load-map-extent LOAD_MAP_EXTENT] [--aiwum1-monthly-tot-dir AIWUM1_MONTHLY_TOT_DIR] [--comp-aiwum-verbose COMP_AIWUM_VERBOSE] --pred-year-list PRED_YEAR_LIST [PRED_YEAR_LIST ...]
-                 [--use-dask USE_DASK] --swb-data-path SWB_DATA_PATH [--hsg-to-inf HSG_TO_INF] [--volume-units VOLUME_UNITS] [--pdp-plot-features PDP_PLOT_FEATURES [PDP_PLOT_FEATURES ...]] [--calc-cc CALC_CC] [--calc-relative-et CALC_RELATIVE_ET] [--calc-eff-ppt CALC_EFF_PPT]
+                 [--drop-attr DROP_ATTR [DROP_ATTR ...]] [--outlier-op OUTLIER_OP] [--compare-aiwums COMPARE_AIWUMS] [--load-pred-raster LOAD_PRED_RASTER] [--load-pred-csv LOAD_PRED_CSV] [--load-map-extent LOAD_MAP_EXTENT] [--aiwum1-monthly-tot-dir AIWUM1_MONTHLY_TOT_DIR] --pred-year-list PRED_YEAR_LIST [PRED_YEAR_LIST ...] [--use-dask USE_DASK] --swb-data-path SWB_DATA_PATH
+                 [--hsg-to-inf HSG_TO_INF] [--volume-units VOLUME_UNITS] [--pdp-plot-features PDP_PLOT_FEATURES [PDP_PLOT_FEATURES ...]] [--calc-cc CALC_CC] [--calc-relative-et CALC_RELATIVE_ET] [--calc-eff-ppt CALC_EFF_PPT]
 
 Flags to run AIWUM 2.0
 
@@ -288,7 +288,7 @@ options:
                         Number of folds for kFold (default: 5)
   --repeats REPEATS     Number of repeats for kFold (default: 3)
   --drop-attr DROP_ATTR [DROP_ATTR ...]
-                        Attributes to drop from the modeling process (default: ['Year', 'Month', 'PermitNumb', 'State', 'Data', 'SWB_HSG'])
+                        Attributes to drop from the modeling process (default: ['Year', 'Month', 'PermitNumb', 'State', 'Data'])
   --outlier-op OUTLIER_OP
                         Outlier operation to perform. Set to 1 for removing outlier directly, 2 for removing outlier by each crop, 3 for removing outliers by each year,4 for removing as per AIWUM 1 based on irrigation thresholds (default: 2)
   --compare-aiwums COMPARE_AIWUMS
@@ -301,8 +301,6 @@ options:
                         Set True to load existing MAP extent rasters. (default: False)
   --aiwum1-monthly-tot-dir AIWUM1_MONTHLY_TOT_DIR
                         AIWUM 1.1 monthly prediction raster path, required if compare-aiwums is True (default: None)
-  --comp-aiwum-verbose COMP_AIWUM_VERBOSE
-                        Set True for extra info during AIWUM comparison (default: False)
   --pred-year-list PRED_YEAR_LIST [PRED_YEAR_LIST ...]
                         Years to predict (default: None)
   --use-dask USE_DASK   Set False to disable Dask (default: False)
@@ -319,9 +317,4 @@ options:
                         Set True to add relative ETs of all ET predictors as predictors. (default: False)
   --calc-eff-ppt CALC_EFF_PPT
                         Set True to add effective precipitation using as a predictor. Only works if SWB_INF and SWB_PPT are in data-list (default: False)
-```                        
-
-Note: The batch.sub file is needed to run AIWUM 2.0 in an HPC environment. Otherwise, it is an optional file.
-“This work utilized the Alpine high performance computing resource at the University of Colorado Boulder. Alpine is 
-jointly funded by the University of Colorado Boulder, the University of Colorado Anschutz, Colorado State University, 
-and the National Science Foundation (award 2201538).”
+```
