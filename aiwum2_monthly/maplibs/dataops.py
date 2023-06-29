@@ -897,7 +897,7 @@ def create_map_prediction_rasters(
         unit_dict = {True: 'm3', False: 'mm'}
         for pred_df_file in pred_df_list:
             print('Predicting', pred_df_file)
-            pred_df = pd.read_parquet(pred_df_file, dtype=float)
+            pred_df = pd.read_parquet(pred_df_file).astype(float)
             pred_df_other_col_idx = pred_df.index[pred_df[other_crop_col] == 1]
             pred_df = pred_df.drop(columns=[other_crop_col])
             pred_arr = pred_df.to_numpy().copy()
@@ -974,6 +974,8 @@ def create_map_prediction_files(
         map_extent_raster_dict: dict[int, tuple[np.ndarray, rasterio.DatasetReader]],
         output_dir: str,
         crop_col: str,
+        lat_col: str = 'lat_dd',
+        lon_col: str = 'long_dd',
         src_crs: str = 'EPSG:4326',
         load_files: bool = False,
         verbose: bool = False
@@ -990,7 +992,9 @@ def create_map_prediction_files(
                                                                                        where values are tuples of
                                                                                        CDL array and rasterio object.
         output_dir (str): Output directory.
-        crop_col (str): Name of the crop column in the original VMP data.
+        crop_col (str): Name of the crop column in the real-time file.
+        lat_col (str): Name of the latitude column in the real-time file.
+        lon_col (str): Name of the longitude column in the real-time file.
         src_crs (str): Source CRS for creating lat/long values.
         load_files (bool): Set True to load existing files.
         verbose (bool): Set True to get additional details about intermediate steps.
@@ -1041,8 +1045,8 @@ def create_map_prediction_files(
                 if verbose:
                     print('Retrieving CDL lat/long', year, 'values...')
                 pred_df[crop_col] = cdl_arr.ravel()
-                pred_df['Latitude'] = lat_vals
-                pred_df['Longitude'] = long_vals
+                pred_df[lat_col] = lat_vals
+                pred_df[lon_col] = long_vals
                 raster_file_dict = create_raster_file_dict(
                     file_dirs, tuple(gee_files), tuple(prism_files),
                     tuple(swb_files), month, year
@@ -1080,6 +1084,8 @@ def create_prediction_map(
         data_start_month: int,
         data_end_month: int,
         crop_col: str,
+        lat_col: str,
+        lon_col: str,
         load_pred_file: bool = False,
         load_map_extent: bool = False,
         load_pred_raster: bool = False,
@@ -1103,7 +1109,9 @@ def create_prediction_map(
         field_shp_dir (str): Field shapefile directory for permitted boundaries.
         data_start_month (int): Data start month in integer format, i.e., 4, 5, etc.
         data_end_month (int): Data end month in integer format, i.e., 4, 5, etc.
-        crop_col (str): Name of the crop column in the original VMP data.
+        crop_col (str): Name of the crop column in the real-time file.
+        lat_col (str): Name of the latitude column in the real-time file.
+        lon_col (str): Name of the longitude column in the real-time file.
         load_map_extent (bool): Set True to load existing MAP extent rasters.
         load_pred_file (bool): Set True to load existing Prediction parquet files.
         load_pred_raster (bool): Set True to load existing Prediction rasters.
@@ -1126,7 +1134,7 @@ def create_prediction_map(
         file_dirs, data_list,
         data_start_month, data_end_month,
         year_list, map_extent_raster_dict,
-        output_dir, crop_col,
+        output_dir, crop_col, lat_col, lon_col,
         src_crs, load_pred_file
     )
     pred_raster_dir = create_map_prediction_rasters(

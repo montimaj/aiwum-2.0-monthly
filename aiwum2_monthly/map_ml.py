@@ -30,6 +30,8 @@ def run_map_ml(args: argparse.Namespace) -> None:
         crop_shp -> Name of the crop field in the shapefile.
         state_shp -> Name of the state field in the shapefile.
         acre_shp -> Name of the acre field in the shapefile.
+        lat_shp -> Name of the latitude column in the shapefile.
+        lon_shp -> Name of the longitude column in the shapefile.
         input_rt_xls -> Input real-time data XLSX file.
         site_id_xls -> Name of the Site ID field in the XLS file.
         dt_xls -> Name of the date column in the XLS file.
@@ -42,8 +44,6 @@ def run_map_ml(args: argparse.Namespace) -> None:
         load_model -> Set True to load pre-built model.
         use_sub_cols -> Set True to make subset data using sub_cols.
         sub_cols -> List of columns for creating subset data.
-        lat_pump -> Name of the latitude column of the VMP data.
-        lon_pump -> Name of the longitude column of the VMP data.
         field_permit_col -> Field permit column name.
         test_size -> Test data size.
         random_state -> PRNG seed.
@@ -208,9 +208,10 @@ def run_map_ml(args: argparse.Namespace) -> None:
         tuple(pred_data_list), args.cdl_path, args.nhd_path,
         args.lanid_path, args.field_shp_dir,
         args.pred_start_month, args.pred_end_month,
-        args.crop_shp, args.load_pred_file,
-        args.load_map_extent, args.load_pred_raster,
-        x_scaler, y_scaler, args.volume_units
+        args.crop_shp, args.lat_shp, args.lon_shp,
+        args.load_pred_file, args.load_map_extent,
+        args.load_pred_raster, x_scaler, y_scaler,
+        args.volume_units
     )
     if args.compare_aiwums:
         compare_aiwums_map(
