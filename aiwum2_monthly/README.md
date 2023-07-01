@@ -72,7 +72,7 @@ may be required for this GEE authentication step. Refer to the installation docs
 Make sure that the aiwum2 conda environment is active. If not, run ```conda activate aiwum2``` before running the following codes.
 #### Linux/Mac Terminal:
 ```
-cd aiwum2/ 
+cd aiwum2_monthly/ 
 python map_ml.py \
 --input-rt-shp <rt-shp-path> \
 --input-rt-xls <rt-xls-path> \
@@ -100,7 +100,7 @@ python map_ml.py \
 ```
 ##### Example run format (Linux/Mac Terminal) using the proprietary 800 m data PRISM datasets
 ```
-cd aiwum2/ 
+cd aiwum2_monthly/ 
 python map_ml.py \
 --input-rt-shp ../AIWUM2_Data/Inputs/Real-time/Realtime_WU_meter_site_2018–2021.shp \
 --input-rt-xls ../AIWUM2_Data/Inputs/Real-time/2__Real-time_WU_daily_values_2018–2021.xlsx \
@@ -129,7 +129,7 @@ python map_ml.py \
 
 #### Windows PowerShell:
 ```
-cd aiwum2\ 
+cd aiwum2_monthly\ 
 python map_ml.py `
 --input-rt-shp <rt-shp-path> `
 --input-rt-xls <rt-xls-path> `
@@ -158,7 +158,7 @@ python map_ml.py `
 
 ##### Example run format (Windows PowerShell) using the free 4 km PRISM datasets
 ```
-cd aiwum2\
+cd aiwum2_monthly\
 python map_ml.py `
 --input-rt-shp ../AIWUM2_Data/Inputs/Real-time/Realtime_WU_meter_site_2018–2021.shp `
 --input-rt-xls ../AIWUM2_Data/Inputs/Real-time/2__Real-time_WU_daily_values_2018–2021.xlsx `
