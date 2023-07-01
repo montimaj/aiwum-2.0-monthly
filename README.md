@@ -40,6 +40,8 @@ The figure below shows the general processing workflow.
 
 ![preview](Readme_Figures/Workflow_MAP.png)
 
+Note that for 2021, we use the 2020 LANID TIF file and the 2020 permitted boundaries shapefile.
+
 ## Getting Started
 
 [Installing the correct environment and running the project](aiwum2/README.md)
