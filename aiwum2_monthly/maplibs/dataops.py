@@ -16,6 +16,7 @@ import zipfile
 import os
 import swifter
 import calendar
+import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
@@ -1145,8 +1146,8 @@ def create_prediction_map(
 
 
 def compare_aiwums_map(
-        aiwum1_tot_dir: str,
-        aiwum2_dir: str,
+        aiwum1_monthly_tot_dir: str,
+        aiwum2_monthly_dir: str,
         input_extent_file: str,
         output_dir: str,
         volume_units: bool = True
@@ -1155,8 +1156,8 @@ def compare_aiwums_map(
     MAP region.
 
     Args:
-        aiwum1_tot_dir (str): AIWUM1.1 total crop water use raster directory. Note: AIWUM1.1 predictions are in m^3.
-        aiwum2_dir (str): Directory containing AIWUM 2.0 predicted rasters. Note: AIWUM2.0 predictions are in acremm.
+        aiwum1_monthly_tot_dir (str): AIWUM1.1 monthly total crop water use (in m3/km2) raster directory.
+        aiwum2_monthly_dir (str): AIWUM 2.1 predicted monthly raster directory (can be either in m3/km2 or mm/km2).
         input_extent_file (str): Input MAP extent raster file path from AIWUM 1.1 or a shapefile.
         output_dir (str): Output directory to store file.
         volume_units (bool): Set False to use mm as water use units instead of m3.
@@ -1165,56 +1166,64 @@ def compare_aiwums_map(
         None
     """
     aiwum_compare_dir = make_proper_dir_name(output_dir + 'AIWUM_Comparison')
-    aiwum1_crop_dir = make_proper_dir_name(aiwum1_tot_dir + 'Cropped')
+    aiwum1_crop_dir = make_proper_dir_name(aiwum1_monthly_tot_dir + 'Cropped')
     makedirs((aiwum_compare_dir, aiwum1_crop_dir))
     if input_extent_file.endswith('.shp'):
-        crop_rasters(aiwum1_tot_dir, input_extent_file, aiwum1_crop_dir, prefix='AIWUM1')
+        crop_rasters(aiwum1_monthly_tot_dir, input_extent_file, aiwum1_crop_dir, prefix='AIWUM1')
     else:
         aiwum1_crop_dir = aiwum_compare_dir
-        copy_files(aiwum1_tot_dir, aiwum1_crop_dir, prefix='AIWUM1', pattern='y*.tif')
+        copy_files(aiwum1_monthly_tot_dir, aiwum1_crop_dir, prefix='AIWUM1', pattern='y*.tif')
     aiwum1_rasters = sorted(glob(aiwum1_crop_dir + 'AIWUM1*.tif'))
-    aiwum2_rasters = sorted(glob(aiwum2_dir + '*1km*.tif'))
     no_data = map_nodata()
     aiwum_tot_pred_df = pd.DataFrame()
     aiwum1_arr_list = []
     aiwum2_arr_list = []
     diff_arr_list = []
     aiwum2_ref_file = None
-    for idx, aiwum2_raster in enumerate(aiwum2_rasters):
+    year_list = []
+    for idx, aiwum1_raster in enumerate(aiwum1_rasters):
+        month_pos = aiwum1_raster.rfind('_m')
+        month = int(aiwum1_raster[month_pos + 2: aiwum1_raster.rfind('_')])
+        month_str = calendar.month_abbr[month]
+        year = int(aiwum1_raster[month_pos - 4: month_pos])
+        year_list.append(year)
+        aiwum2_raster = glob(f'{aiwum2_monthly_dir}*1km*{year}_{month_str}.tif')[0]
         aiwum2_arr, aiwum2_ref_file = read_raster_as_arr(aiwum2_raster)
         if not volume_units:
             aiwum2_arr *= 2.471 * 4.047  # needs to converted to volume units to compare with AIWUM 1.1
-        year = aiwum2_raster[aiwum2_raster.rfind('_') + 1: aiwum2_raster.rfind('.')]
-        if idx < len(aiwum1_rasters):
-            aiwum2_arr_list.append(aiwum2_arr)
-            aiwum1_raster = aiwum1_rasters[idx]
-            aiwum1_arr = resample_raster(aiwum1_raster, ref_raster=aiwum2_ref_file)
-            aiwum1_arr[np.isnan(aiwum2_arr)] = np.nan
-            aiwum1_arr_list.append(aiwum1_arr)
-            df = {'Year': [int(year)], 'AIWUM1.1': [np.nansum(aiwum1_arr)], 'AIWUM2.0': [np.nansum(aiwum2_arr)]}
-            aiwum_tot_pred_df = pd.concat([aiwum_tot_pred_df, pd.DataFrame(data=df)])
-            aiwum1_arr_copy = deepcopy(aiwum1_arr)
-            aiwum1_arr_copy[np.isnan(aiwum1_arr_copy)] = no_data
-            aiwum1_out = f'{aiwum_compare_dir}AIWUM1_1km_m3_{year}.tif'
-            write_raster(
-                aiwum1_arr_copy,
-                aiwum2_ref_file,
-                transform_=aiwum2_ref_file.transform,
-                outfile_path=aiwum1_out,
-                no_data_value=no_data
-            )
-            diff_arr = aiwum2_arr - aiwum1_arr
-            diff_arr_list.append(diff_arr)
-            diff_out = f'{aiwum_compare_dir}Diff_1km_m3_{year}.tif'
-            diff_arr[np.isnan(diff_arr)] = no_data
-            write_raster(
-                diff_arr,
-                aiwum2_ref_file,
-                transform_=aiwum2_ref_file.transform,
-                outfile_path=diff_out,
-                no_data_value=no_data
-            )
-        aiwum2_out = f'{aiwum_compare_dir}AIWUM2_1km_m3_{year}.tif'
+        aiwum2_arr_list.append(aiwum2_arr)
+        aiwum1_arr = resample_raster(aiwum1_raster, ref_raster=aiwum2_ref_file)
+        aiwum1_arr[np.isnan(aiwum2_arr)] = np.nan
+        aiwum1_arr_list.append(aiwum1_arr)
+        df = {
+            'Year': [int(year)],
+            'Month': [month],
+            'AIWUM1.1': [np.nansum(aiwum1_arr)],
+            'AIWUM2.1': [np.nansum(aiwum2_arr)]
+        }
+        aiwum_tot_pred_df = pd.concat([aiwum_tot_pred_df, pd.DataFrame(data=df)])
+        aiwum1_arr_copy = deepcopy(aiwum1_arr)
+        aiwum1_arr_copy[np.isnan(aiwum1_arr_copy)] = no_data
+        aiwum1_out = f'{aiwum_compare_dir}AIWUM1_1km_m3_{year}_{month_str}.tif'
+        write_raster(
+            aiwum1_arr_copy,
+            aiwum2_ref_file,
+            transform_=aiwum2_ref_file.transform,
+            outfile_path=aiwum1_out,
+            no_data_value=no_data
+        )
+        diff_arr = aiwum2_arr - aiwum1_arr
+        diff_arr_list.append(diff_arr)
+        diff_out = f'{aiwum_compare_dir}Diff_1km_m3_{year}_{month_str}.tif'
+        diff_arr[np.isnan(diff_arr)] = no_data
+        write_raster(
+            diff_arr,
+            aiwum2_ref_file,
+            transform_=aiwum2_ref_file.transform,
+            outfile_path=diff_out,
+            no_data_value=no_data
+        )
+        aiwum2_out = f'{aiwum_compare_dir}AIWUM2_1km_m3_{year}_{month_str}.tif'
         aiwum2_arr_copy = deepcopy(aiwum2_arr)
         aiwum2_arr_copy[np.isnan(aiwum2_arr_copy)] = no_data
         write_raster(
@@ -1225,10 +1234,16 @@ def compare_aiwums_map(
             no_data_value=no_data
         )
     aiwum_tot_pred_df.to_csv(aiwum_compare_dir + 'Annual_Tot_AIWUM.csv', index=False)
-    aiwum_tot_pred_df.set_index('Year').plot.bar(rot=0)
-    plt.ylabel(r'Total Water Use ($m^3$)')
-    fig_name = aiwum_compare_dir + 'AIWUM_Total_Comparison.png'
-    plt.savefig(fig_name, dpi=600)
+    for year in year_list:
+        yearly_df = aiwum_tot_pred_df[aiwum_tot_pred_df.Year == year].drop(columns=['Year'])
+        yearly_df = yearly_df.sort_values(by='Month').reset_index(drop=True)
+        yearly_df.Month = yearly_df.Month.apply(lambda x: calendar.month_abbr[x])
+        yearly_df.set_index('Month').plot.bar(rot=0)
+        plt.ylabel(r'Total Monthly Water Use ($m^3$)')
+        fig_name = f'{aiwum_compare_dir}AIWUM_Total_Comparison_{year}.png'
+        plt.savefig(fig_name, dpi=600)
+        plt.clf()
+        plt.close()
     mean_data_list = [aiwum1_arr_list, aiwum2_arr_list, diff_arr_list]
     output_mean_files = ['AIWUM1_Mean.tif', 'AIWUM2_Mean.tif', 'Diff_Mean.tif']
     for data_list, output_file in zip(mean_data_list, output_mean_files):

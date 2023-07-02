@@ -119,12 +119,12 @@ python map_ml.py \
 --train-year-list 2014 2015 2016 2017 2018 2019 2020 2021 \
 --pred-year-list 2014 2015 2016 2017 2018 2019 2020 2021 \
 --load-map-csv True \
---load-pred-raster False \
+--load-pred-raster True \
 --load-pred-file True \
 --load-map-extent True \
 --model-name LGBM \
---compare-aiwums False \
---aiwum1-monthly-tot-dir ../AIWUM2_Data/Inputs/AIWUM1_Monthly_Total/
+--compare-aiwums True \
+--aiwum1-monthly-tot-dir ../AIWUM2_Data/Inputs/AIWUM1-1_Monthly_total/
 ```
 
 #### Windows PowerShell:
@@ -180,8 +180,8 @@ python map_ml.py `
 --load-pred-file False `
 --load-map-extent False `
 --model-name LGBM `
---compare-aiwums False `
---aiwum1-monthly-tot-dir ../AIWUM2_Data/Inputs/AIWUM1_Monthly_Total/
+--compare-aiwums True `
+--aiwum1-monthly-tot-dir ../AIWUM2_Data/Inputs/AIWUM1-1_Monthly_total/
 ```
 
 #### Other usage notes
