@@ -41,7 +41,7 @@ In this study, we use Gradient Boosting Machine (GBM) to solve a multi-variate r
 Here we used the [LightGBM](https://lightgbm.readthedocs.io/en/v3.3.5/) ([Ke et al., 2017](https://proceedings.neurips.cc/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf)) Python library to implement the AIWUM 2 model and compared its performance against other algorithms, e.g., Distributed Random Forests (DRF), Support Vector Regression (SVR), Extremely Randomized Trees (ERT), Bagging Trees (BT), AdaBoost Regression (ABR), Decision Tree (DT), k-Nearest Neighbors (KNN), and Multiple Linear Regression (MLR). The model comparison is shown below where the metrics are rounded to 3 decimal places (the table is sorted based on the Test RMSE). RMSE was used as the error function in all these models.
 
 
-<style type="text/css">
+<style>
 .tg  {border-collapse:collapse;border-spacing:0;}
 .tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
   overflow:hidden;padding:10px 5px;word-break:normal;}
