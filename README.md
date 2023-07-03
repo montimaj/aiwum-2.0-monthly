@@ -15,12 +15,7 @@ Authors: [Sayantan Majumdar](https://scholar.google.com/citations?user=iYlO-VcAA
 The motivation for this project was to improve estimates of groundwater usage across the Mississippi Embayment (MISE), a large area within the Mississippi Alluvial Plain (MAP) region in support of an ongoing USGS effort to model the groundwater resources of the region. Agricultural use is the dominant water use in this region, and very few wells are monitored. The Mississippi Delta region has the most monitoring wells, with flowmeters on roughly 10% of the total irrigation wells. [Wilson (2021)](https://doi.org/10.3133/sir20215011) developed a lookup table based on these data that estimates water use based on average water use for each crop type, for specific regions, and precipitation amounts. The latest iteration of the [Wilson (2021)](https://doi.org/10.3133/sir20215011) model is referred to as AIWUM 2.0 (annual model). The method developed here is referred to as AIWUM 2.1. 
 
 The goal of this project was to improve on that method by using additional data that is likely related to water use, such as remotely-sensed evapotranspiration, model-based estimates of soil moisture, and temperature. These and other variables are likely related to water use, but quantifying this relationship, which is often complex and non-linear, with traditional models is a challenge. Machine learning provides robust tools for ingesting large numbers of predictor variables and quantifying how they are related to a prediction of interest ([Hastie et al., 2001](https://hastie.su.domains/ElemStatLearn/printings/ESLII_print12_toc.pdf)). Previous works in Kansas and Arizona have demonstrated the ability to relate remote sensing and other gridded predictors to groundwater pumping data with good accuracy  (Majumdar et al., [2020](https://doi.org/10.1029/2020WR028059), [2022](https://doi.org/10.1002/hyp.14757)). In this study, we implement a similar approach to estimate monthly groundwater pumping throughout the MISE, at a monthly time-step, using data from existing flowmeters (both real-time and VMP) in this region.
-
-In this study, we use Gradient Boosting Machine (GBM) to solve a multi-variate regression problem wherein our target is to predict the monthly groundwater use across the MISE from 2014-2021.  
-
-
-Here we used the [LightGBM](https://lightgbm.readthedocs.io/en/v3.3.5/) ([Ke et al., 2017](https://proceedings.neurips.cc/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf)) Python library to implement the AIWUM 2 model and compared its performance against other algorithms, e.g., Distributed Random Forests, Support Vector Machine, Extremely Randomized Trees, etc.
-
+We use the real-time data (2018-2021) and calculate the normalized weights for each month. We then multiply these weights to the annual VMP data to get the disaggregated annual water use values.
 
 The predictor variables include latitude, longitude, crop type, precipitation, maximum temperature, total evapotranspiration estimated with SSEBop, surface run-off and soil moisture (TerraClimate). A table summary of the predictor variables is given below.
 
@@ -42,9 +37,30 @@ The figure below shows the general processing workflow.
 
 Note that for 2021, we use the 2020 LANID TIF file and the 2020 permitted boundaries shapefile.
 
+In this study, we use Gradient Boosting Machine (GBM) to solve a multi-variate regression problem wherein our target is to predict the monthly groundwater use across the MISE from 2014-2021. The model prediction results are shown [here](Outputs/LGBM_Results.rtf). Note that compared to the AIWUM 2.0 model, the test R2 is higher with lower RMSE and MAE. This is because the disaggregated data using the real-time weights have consistent weights for each month and thus, the model is able to provide better results.
+Here we used the [LightGBM](https://lightgbm.readthedocs.io/en/v3.3.5/) ([Ke et al., 2017](https://proceedings.neurips.cc/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf)) Python library to implement the AIWUM 2 model and compared its performance against other algorithms, e.g., Distributed Random Forests, Support Vector Machine, Extremely Randomized Trees, etc. The model comparison is shown below.
+
+| Model   | Train R2 | Train RMSE (m) | Train MAE (m) | Test R2 | Test RMSE (m) | Test MAE (m) |
+|---------|----------|----------------|---------------|---------|---------------|--------------|
+| **GBM** | 0.831    | 16.988         | 10.376        | 0.726   | 21.619        | 12.652       |
+
+
+## AIWUM 1.1 vs 2.1 Comparison
+
+| **2014**                                                             | **2015**                                                             | **2016**                                                             |
+|----------------------------------------------------------------------|----------------------------------------------------------------------|----------------------------------------------------------------------|
+| ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2014.png) | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2015.png) | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2016.png) |
+| **2017**                                                             | **2018**                                                             | **2019**                                                             |
+| ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2017.png) | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2018.png) | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2019.png) |
+
+
+Here, we show the AIWUM 1.1 and 2.1 total growing season (Apr-Oct) water use rasters along with the difference map for 2019.
+
+<img src="Readme_Figures/AIWUM1-1_GS_Total_2019.png" height="500" /> <img src="Readme_Figures/AIWUM2-1_GS_Total_2019.png" height="500" />  <img src="Readme_Figures/Diff_GS_Total_2019.png" height="500" />
+
 ## Getting Started
 
-[Installing the correct environment and running the project](aiwum2/README.md)
+[Installing the correct environment and running the project](aiwum2_monthly/README.md)
 
 ## Related External Resources
 Abatzoglou, J. T., Dobrowski, S. Z., Parks, S. A., & Hegewisch, K. C. (2018). TerraClimate, a high-resolution global dataset of monthly climate and climatic water balance from 1958–2015. Scientific Data, 5(1), 170191. https://doi.org/10.1038/sdata.2017.191

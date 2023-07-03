@@ -944,7 +944,7 @@ def create_map_prediction_rasters(
             pred_wu = pred_wu.reshape(map_extent_raster_arr.shape)
             if volume_units:
                 pred_wu *= 2.471 * 4.047  # acremm/acre to acremm/(1e-2 km2) to m3/(1e-2 km2)
-            pred_wu_suffix = f'{pred_raster_dir}AIWUM2_100m_{unit_dict[volume_units]}_{year}_{month}'
+            pred_wu_suffix = f'{pred_raster_dir}AIWUM2-1_100m_{unit_dict[volume_units]}_{year}_{month}'
             pred_wu_file = pred_wu_suffix + '.parquet'
             pred_df.to_parquet(pred_wu_file, index=False)
             pred_wu_raster = pred_wu_suffix + '.tif'
@@ -954,7 +954,8 @@ def create_map_prediction_rasters(
                 outfile_path=pred_wu_raster,
                 no_data_value=map_extent_raster_file.nodata
             )
-            pred_wu_resampled_raster = f'{pred_raster_dir}AIWUM2_1km_{unit_dict[volume_units]}_{year}_{month}.tif'  # m3/km2
+            pred_wu_resampled_raster = f'{pred_raster_dir}AIWUM2-1_1km_{unit_dict[volume_units]}_{year}_' \
+                                       f'{month}_init.tif'  # m3/km2
             reproject_raster_gdal(
                 pred_wu_raster,
                 pred_wu_resampled_raster,
@@ -962,6 +963,21 @@ def create_map_prediction_rasters(
                 downsampling=True,
                 resampling_func='sum'
             )
+
+            # correction to remove gdal artifacts
+            pred_wu_1km_arr, pred_wu_1km_file = read_raster_as_arr(pred_wu_resampled_raster)
+            pred_wu_1km_arr[np.round(pred_wu_1km_arr, 2) <= 0.01] = np.nan
+            pred_wu_1km_arr[np.isnan(pred_wu_1km_arr)] = pred_wu_1km_file.nodata
+            pred_wu_1km_corrected = f'{pred_raster_dir}AIWUM2-1_1km_{unit_dict[volume_units]}_{year}_{month}.tif'
+            write_raster(
+                pred_wu_1km_arr, pred_wu_1km_file,
+                transform_=pred_wu_1km_file.transform,
+                outfile_path=pred_wu_1km_corrected,
+                no_data_value=pred_wu_1km_file.nodata
+            )
+            pred_wu_1km_file.close()
+            os.remove(pred_wu_resampled_raster)
+
     return pred_raster_dir
 
 
@@ -1169,32 +1185,33 @@ def compare_aiwums_map(
     aiwum1_crop_dir = make_proper_dir_name(aiwum1_monthly_tot_dir + 'Cropped')
     makedirs((aiwum_compare_dir, aiwum1_crop_dir))
     if input_extent_file.endswith('.shp'):
-        crop_rasters(aiwum1_monthly_tot_dir, input_extent_file, aiwum1_crop_dir, prefix='AIWUM1')
+        crop_rasters(aiwum1_monthly_tot_dir, input_extent_file, aiwum1_crop_dir, prefix='AIWUM1-1')
     else:
         aiwum1_crop_dir = aiwum_compare_dir
-        copy_files(aiwum1_monthly_tot_dir, aiwum1_crop_dir, prefix='AIWUM1', pattern='y*.tif')
-    aiwum1_rasters = sorted(glob(aiwum1_crop_dir + 'AIWUM1*.tif'))
+        copy_files(aiwum1_monthly_tot_dir, aiwum1_crop_dir, prefix='AIWUM1-1', pattern='y*.tif')
+    aiwum1_rasters = sorted(glob(aiwum1_crop_dir + 'AIWUM1-1*.tif'))
     no_data = map_nodata()
     aiwum_tot_pred_df = pd.DataFrame()
-    aiwum1_arr_list = []
-    aiwum2_arr_list = []
-    diff_arr_list = []
     aiwum2_ref_file = None
     year_list = []
+    month_list = []
+    aiwum1_dict = {}
+    aiwum2_dict = {}
     for idx, aiwum1_raster in enumerate(aiwum1_rasters):
         month_pos = aiwum1_raster.rfind('_m')
         month = int(aiwum1_raster[month_pos + 2: aiwum1_raster.rfind('_')])
         month_str = calendar.month_abbr[month]
         year = int(aiwum1_raster[month_pos - 4: month_pos])
         year_list.append(year)
+        month_list.append(month)
         aiwum2_raster = glob(f'{aiwum2_monthly_dir}*1km*{year}_{month_str}.tif')[0]
         aiwum2_arr, aiwum2_ref_file = read_raster_as_arr(aiwum2_raster)
         if not volume_units:
             aiwum2_arr *= 2.471 * 4.047  # needs to converted to volume units to compare with AIWUM 1.1
-        aiwum2_arr_list.append(aiwum2_arr)
+        aiwum2_dict[(year, month)] = aiwum2_arr
         aiwum1_arr = resample_raster(aiwum1_raster, ref_raster=aiwum2_ref_file)
         aiwum1_arr[np.isnan(aiwum2_arr)] = np.nan
-        aiwum1_arr_list.append(aiwum1_arr)
+        aiwum1_dict[(year, month)] = aiwum1_arr
         df = {
             'Year': [int(year)],
             'Month': [month],
@@ -1204,7 +1221,7 @@ def compare_aiwums_map(
         aiwum_tot_pred_df = pd.concat([aiwum_tot_pred_df, pd.DataFrame(data=df)])
         aiwum1_arr_copy = deepcopy(aiwum1_arr)
         aiwum1_arr_copy[np.isnan(aiwum1_arr_copy)] = no_data
-        aiwum1_out = f'{aiwum_compare_dir}AIWUM1_1km_m3_{year}_{month_str}.tif'
+        aiwum1_out = f'{aiwum_compare_dir}AIWUM1-1_1km_m3_{year}_{month_str}.tif'
         write_raster(
             aiwum1_arr_copy,
             aiwum2_ref_file,
@@ -1213,7 +1230,6 @@ def compare_aiwums_map(
             no_data_value=no_data
         )
         diff_arr = aiwum2_arr - aiwum1_arr
-        diff_arr_list.append(diff_arr)
         diff_out = f'{aiwum_compare_dir}Diff_1km_m3_{year}_{month_str}.tif'
         diff_arr[np.isnan(diff_arr)] = no_data
         write_raster(
@@ -1223,7 +1239,7 @@ def compare_aiwums_map(
             outfile_path=diff_out,
             no_data_value=no_data
         )
-        aiwum2_out = f'{aiwum_compare_dir}AIWUM2_1km_m3_{year}_{month_str}.tif'
+        aiwum2_out = f'{aiwum_compare_dir}AIWUM2-1_1km_m3_{year}_{month_str}.tif'
         aiwum2_arr_copy = deepcopy(aiwum2_arr)
         aiwum2_arr_copy[np.isnan(aiwum2_arr_copy)] = no_data
         write_raster(
@@ -1244,18 +1260,26 @@ def compare_aiwums_map(
         plt.savefig(fig_name, dpi=600)
         plt.clf()
         plt.close()
-    mean_data_list = [aiwum1_arr_list, aiwum2_arr_list, diff_arr_list]
-    output_mean_files = ['AIWUM1_Mean.tif', 'AIWUM2_Mean.tif', 'Diff_Mean.tif']
-    for data_list, output_file in zip(mean_data_list, output_mean_files):
-        mean_data = np.stack(data_list).mean(axis=0)
-        mean_data[np.isnan(mean_data)] = no_data
-        write_raster(
-            mean_data,
-            aiwum2_ref_file,
-            transform_=aiwum2_ref_file.transform,
-            outfile_path=aiwum_compare_dir + output_file,
-            no_data_value=no_data
-        )
+        aiwum1_list = []
+        aiwum2_list = []
+        for month in month_list:
+            aiwum1_list.append(aiwum1_dict[(year, month)])
+            aiwum2_list.append(aiwum2_dict[(year, month)])
+        aiwum1_gs_total = np.stack(aiwum1_list).sum(axis=0)
+        aiwum2_gs_total = np.stack(aiwum2_list).sum(axis=0)
+        diff_gs_total = aiwum2_gs_total - aiwum1_gs_total
+        gs_data_list = [aiwum1_gs_total, aiwum2_gs_total, diff_gs_total]
+        file_list = ['AIWUM1-1', 'AIWUM2-1', 'Diff']
+        for gs_data, fname in zip(gs_data_list, file_list):
+            gs_data[np.isnan(gs_data)] = no_data
+            output_file = f'{aiwum_compare_dir}{fname}_GS_Total_{year}.tif'
+            write_raster(
+                gs_data,
+                aiwum2_ref_file,
+                transform_=aiwum2_ref_file.transform,
+                outfile_path=output_file,
+                no_data_value=no_data
+            )
 
 
 def split_data_train_test(
