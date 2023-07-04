@@ -15,6 +15,8 @@ and the [Apple MacBook Pro 2023](https://www.apple.com/macbook-pro/) (macOS Vent
 
 **Data Release**: Majumdar, S., Smith, R.G., Hasan, M.F., Wilson, J.L., Bristow, E.L., Rigby, J.R., Kress, W.H., Painter, J.A., and White, V.E., 2023, Aquaculture and Irrigation Water Use Model (AIWUM) 2.0 input and output datasets, https://doi.org/10.5066/P9CET25K.
 
+**Journal Article**: Majumdar, S., Smith, R.G., Hasan, M.F., Wilson, J.L., Bristow, E.L., Rigby, J.R., Kress, W.H., Painter, J.A., and White, V.E., 2023, Improving Crop-Specific Groundwater Use Estimation in the Mississippi Alluvial Plain: Implications for Integrated Remote Sensing and Machine Learning Approaches in Data-Scarce Regions. Under review in Journal of Hydrology: Regional Studies.
+
 ## Running the project
 
 ### 1. Download and install Anaconda/Miniconda

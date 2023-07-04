@@ -10,6 +10,8 @@ Authors: [Sayantan Majumdar](https://scholar.google.com/citations?user=iYlO-VcAA
 
 **Data Release**: Majumdar, S., Smith, R.G., Hasan, M.F., Wilson, J.L., Bristow, E.L., Rigby, J.R., Kress, W.H., Painter, J.A., and White, V.E., 2023, Aquaculture and Irrigation Water Use Model (AIWUM) 2.0 input and output datasets, https://doi.org/10.5066/P9CET25K.
 
+**Journal Article**: Majumdar, S., Smith, R.G., Hasan, M.F., Wilson, J.L., Bristow, E.L., Rigby, J.R., Kress, W.H., Painter, J.A., and White, V.E., 2023, Improving Crop-Specific Groundwater Use Estimation in the Mississippi Alluvial Plain: Implications for Integrated Remote Sensing and Machine Learning Approaches in Data-Scarce Regions. Under review in Journal of Hydrology: Regional Studies.
+
 ## Summary
 
 The motivation for this project was to improve estimates of groundwater usage across the Mississippi Embayment (MISE), a large area within the Mississippi Alluvial Plain (MAP) region in support of an ongoing USGS effort to model the groundwater resources of the region. Agricultural use is the dominant water use in this region, and very few wells are monitored. The Mississippi Delta region has the most monitoring wells, with flowmeters on roughly 10% of the total irrigation wells. [Wilson (2021)](https://doi.org/10.3133/sir20215011) developed a lookup table based on these data that estimates water use based on average water use for each crop type, for specific regions, and precipitation amounts. The latest iteration of the [Wilson (2021)](https://doi.org/10.3133/sir20215011) model is referred to as AIWUM 2.0 (annual model). The method developed here is referred to as AIWUM 2.1. 
@@ -182,10 +184,10 @@ Here we used the [LightGBM](https://lightgbm.readthedocs.io/en/v3.3.5/) ([Ke et 
 
 ## AIWUM 1.1 vs 2.1 Comparison
 
-| **2014**                                                        | **2015**                                                             | **2016**                                                             |
-|-----------------------------------------------------------------|----------------------------------------------------------------------|----------------------------------------------------------------------|
+| **2014**                                                             | **2015**                                                             | **2016**                                                             |
+|----------------------------------------------------------------------|----------------------------------------------------------------------|----------------------------------------------------------------------|
 | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2014.png) | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2015.png) | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2016.png) |
-| <div align="center">**2017**</div>                              | <div align="center">**2018**</div>                                   | <div align="center">**2019**</div>                                   |
+| <div align="center">**2017**</div>                                   | <div align="center">**2018**</div>                                   | <div align="center">**2019**</div>                                   |
 | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2017.png) | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2018.png) | ![preview](Outputs/AIWUM_Comparison/AIWUM_Total_Comparison_2019.png) |
 
 
@@ -195,7 +197,7 @@ Here, we show the AIWUM 1.1 and 2.1 total growing season (Apr-Oct) water use ras
 |--------------------------------------------------------|--------------------------------------------------------|----------------------------------------------------|
 | ![preview](Readme_Figures/AIWUM1-1_GS_Total_2019.png)  | ![preview](Readme_Figures/AIWUM2-1_GS_Total_2019.png)  | ![preview](Readme_Figures/Diff_GS_Total_2019.png)  |
 
-All the AIWUM 1.1 and 2.1 growing season rasters are available [here](Outputs/AIWUM_Comparison/). Unlike AIWUM 1.1, AIWUM 2.1 also has predictions for the remaining months which can be found [here](Outputs/AIWUM2-1_Monthly_1km_m3_2014_2021.zip). Note that for 2021, we use the 2020 LANID TIF file and the 2020 permitted boundaries shapefile.
+All the AIWUM 1.1 and 2.1 growing season rasters are available [here](Outputs/AIWUM_Comparison). Unlike AIWUM 1.1, AIWUM 2.1 also has predictions for the remaining months which can be found [here](Outputs/AIWUM2-1_Monthly_1km_m3_2014_2021.zip). Note that for 2021, we use the 2020 LANID TIF file and the 2020 permitted boundaries shapefile.
 
 ## Getting Started
 
