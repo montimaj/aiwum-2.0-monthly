@@ -42,16 +42,16 @@ Here we used the [LightGBM](https://lightgbm.readthedocs.io/en/v3.3.5/) ([Ke et 
 
 
 <style>
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-amwm{font-weight:bold;text-align:center;vertical-align:top}
-.tg .tg-0lax{text-align:left;vertical-align:top}
-.tg .tg-dg41{background-color:#dad8a5;text-align:left;vertical-align:top}
+    .heatMap {
+        width: 100%;
+        text-align: center;
+    }
+    .heatMap th {
+        word-wrap: break-word;
+        text-align: center;
+    }
 </style>
-<table class="tg">
+<table class="heatMap">
 <thead>
   <tr>
     <th class="tg-1wig" rowspan="2">Model</th>
@@ -72,7 +72,7 @@ Here we used the [LightGBM](https://lightgbm.readthedocs.io/en/v3.3.5/) ([Ke et 
   </tr>
 </thead>
 <tbody>
-  <tr>
+  <tr bgcolor="#D8D08F">
     <td class="tg-dg41">GBM</td>
     <td class="tg-dg41">0.831</td>
     <td class="tg-dg41">16.988</td>
