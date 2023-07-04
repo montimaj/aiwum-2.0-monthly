@@ -38,7 +38,7 @@ The figure below shows the general processing workflow.
 Note that for 2021, we use the 2020 LANID TIF file and the 2020 permitted boundaries shapefile.
 
 In this study, we use Gradient Boosting Machine (GBM) to solve a multi-variate regression problem wherein our target is to predict the monthly groundwater use across the MISE from 2014-2021. The model prediction results are shown [here](Outputs/LGBM_Results.rtf). Note that compared to the AIWUM 2.0 model, the test R2 is higher with lower RMSE and MAE. This is because the disaggregated data using the real-time weights have consistent weights for each month and thus, the model is able to provide better results.
-Here we used the [LightGBM](https://lightgbm.readthedocs.io/en/v3.3.5/) ([Ke et al., 2017](https://proceedings.neurips.cc/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf)) Python library to implement the AIWUM 2 model and compared its performance against other algorithms, e.g., Distributed Random Forests (DRF), Support Vector Regression (SVR), Extremely Randomized Trees (ERT), Bagging Trees (BT), AdaBoost Regression (ABR), Decision Tree (DT), k-Nearest Neighbors (KNN), and Multiple Linear Regression (MLR). The model comparison is shown below where the metrics are rounded to 3 decimal places (the table is sorted based on the Test RMSE). RMSE was used as the error function in all these models.
+Here we used the [LightGBM](https://lightgbm.readthedocs.io/en/v3.3.5/) ([Ke et al., 2017](https://proceedings.neurips.cc/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf)) Python library to implement the AIWUM 2 model and compared its performance against other algorithms, e.g., Distributed Random Forests (DRF), Random Forests (RF), Support Vector Regression (SVR), Extremely Randomized Trees (ERT), Bagging Trees (BT), AdaBoost Regression (ABR), Decision Tree (DT), k-Nearest Neighbors (KNN), and Multiple Linear Regression (MLR). The model comparison is shown below where the metrics are rounded to 3 decimal places (the table is sorted based on the Test RMSE). RMSE was used as the error function in all these models.
 
 
 <table>
@@ -127,7 +127,7 @@ Here we used the [LightGBM](https://lightgbm.readthedocs.io/en/v3.3.5/) ([Ke et 
     <td class="tg-0lax">0.819</td>
     <td class="tg-0lax">13.798</td>
     <td class="tg-0lax">7.516</td>
-    <td class="tg-0lax"><0.622</td>
+    <td class="tg-0lax">0.622</td>
     <td class="tg-0lax">25.872</td>
     <td class="tg-0lax">15.034</td>
     <td class="tg-0lax">0.632</td>
