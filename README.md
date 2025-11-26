@@ -36,6 +36,8 @@ A table summarizing the predictor variables and a diagram of the general process
 
 Unlike AIWUM 2.0 which predicts both annual and monthly groundwater use, AIWUM 2.0 Monthly predicts monthly groundwater use at the same 1-km spatial resolution. Here, we aim to incorporate the USGS real-time flowmeter data available across the MAP to disaggegate the annual VMP data into monthly timesteps and increase our training samples. The disaggregation process is described below.
 
+<img src="Readme_Figures/workflow.png"/>
+
 #### Disaggregating VMP data with the real-time weights
 For the annual model, we disaggregated with AIWUM 2.0 predictions ([Majumdar and others, 2024b](https://doi.org/10.5066/P9CET25K)) with the normalized crop-specific weights derived from the real-time flowmeter data. Here, we apply the same approach as used in [Majumdar and others (2024a)](https://doi.org/10.1016/j.ejrh.2024.101674) to 
 disaggregate the original VMP data. Therefore, we develop monthly VMP data from the annual one and then include the aggregated monthly real-time measurements as well. One caveat of this approach is that 
