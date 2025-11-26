@@ -7,10 +7,7 @@ Provides methods for different system operations required for the MAP project.
 
 import os
 import shutil
-import sys
 from glob import glob
-from os.path import dirname, abspath
-sys.path.insert(0, dirname(abspath(__file__)))
 
 
 def makedirs(directory_list: tuple[str, ...] | str) -> None:

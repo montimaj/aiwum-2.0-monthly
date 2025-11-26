@@ -353,7 +353,7 @@ def prepare_data(
     """
     print('Preparing data sets...')
     output_csv = output_dir + 'Monthly_Predictor.csv'
-    data_dir = make_proper_dir_name(output_dir + 'Downloaded_Data')
+    data_dir = make_proper_dir_name('../AIWUM2_Data/Inputs/Downloaded_Data')
     makedirs(data_dir)
     if not already_prepared:
         sub_df = monthly_df.copy(deep=True)
@@ -479,6 +479,7 @@ def get_monthly_weight_dict(rt_shp_file: str, rt_xls_file: str) -> dict[str, lis
     for crop in avg_wu.keys():
         wu_arr = np.array(avg_wu[crop])
         wu_arr = wu_arr / np.nansum(wu_arr)
+        wu_arr[np.isnan(wu_arr)] = 0
         monthly_weight_dict[crop] = wu_arr.tolist()
     return monthly_weight_dict
 
@@ -532,22 +533,46 @@ def calculate_aquaculture_monthly_avg_wu(
     return monthly_avg_wu[rt_df.columns[2]].tolist()
 
 
-def get_monthly_estimates(vmp_csv, rt_shp_file, rt_xls_file, year_shp, crop_shp, target_attr='AF_Acre'):
+def get_monthly_estimates(
+    vmp_csv: str,
+    rt_shp_file: str,
+    rt_xls_file: str,
+    year_shp: str,
+    crop_shp: str,
+    outlier_op: int = 2,
+    target_attr: str = 'AF_Acre'
+) -> pd.DataFrame:
     """
     Calculate monthly estimates from the annual VMP data
-    :param vmp_csv: VMP CSV file
-    :param rt_shp_file: Real-time sites shapefile
-    :param rt_xls_file: Real-time XLS file containing site ids and daily water use
-    :param year_shp: Name of the year column in rt_shp_file
-    :param crop_shp: Name of the crop column in rt_shp_file
-    :param target_attr: Attribute name of the water use column to disaggregate
-    :return: Monthly disaggregated VMP WU dataframe
+
+    Args:
+        vmp_csv (str): VMP CSV file.
+        rt_shp_file (str): Real-time sites shapefile.
+        rt_xls_file (str): Real-time XLS file containing site ids and daily water use.
+        year_shp (str): Name of the year column in rt_shp_file.
+        crop_shp (str): Name of the crop column in rt_shp_file.
+        outlier_op (int): Outlier operation to perform. Set to 1 for removing outlier directly, 2 for removing outliers
+                          by each crop, 3 for removing outliers by each year, or 4 for removing as per AIWUM 1 based on
+                          irrigation thresholds. Note: for this project we only process outliers above the boxplot
+                          upper limit for 1-3. Set 0 to disable outlier processing.
+        target_attr (str): Attribute name of the water use column to disaggregate.
+
+    Returns:
+        Monthly disaggregated VMP WU dataframe
     """
 
     vmp_df = pd.read_csv(vmp_csv)
     crop_col = 'Crop(s)'
+    year_col = 'ReportYear'
     vmp_df[crop_col] = vmp_df[crop_col].apply(
         lambda x: x.strip() if 'Soybean' not in x else 'Soybeans'
+    )
+    vmp_df = process_outliers(
+        vmp_df,
+        target_attr,
+        crop_col,
+        year_col,
+        outlier_op
     )
     monthly_wt = get_monthly_weight_dict(
         rt_shp_file, rt_xls_file,
@@ -583,6 +608,7 @@ def create_monthly_wu_csv(
         year_list: tuple[int, ...] = (),
         state_list: tuple[str, ...] = (),
         vmp_csv: str | None = None,
+        outlier_op: int = 2,
         load_csv: bool = False
 ) -> pd.DataFrame:
     """Create total monthly water use CSV file from the real-time flowmeter shapefile and XLSX file.
@@ -602,6 +628,10 @@ def create_monthly_wu_csv(
         state_list (tuple (str, ...)): Tuple of abbreviated state list in the MAP, i.e., (MS, AR, LA, etc.)
         vmp_csv (str or None): VMP CSV file if both VMP and real-time data are to be merged after disaggregating the
                                VMP data with real-time weights.
+        outlier_op (int): Outlier operation to perform. Set to 1 for removing outlier directly, 2 for removing outliers
+                          by each crop, 3 for removing outliers by each year, or 4 for removing as per AIWUM 1 based on
+                          irrigation thresholds. Note: for this project we only process outliers above the boxplot
+                          upper limit for 1-3. Set 0 to disable outlier processing.
         load_csv (bool): Set True to load existing CSV
 
     Returns:
@@ -654,7 +684,8 @@ def create_monthly_wu_csv(
                 rt_shp_file,
                 rt_xls_file,
                 year_shp,
-                crop_shp
+                crop_shp,
+                outlier_op
             )
             vmp_monthly['Data'] = 'VMP'
             rt_df_new = pd.concat([rt_df_new, vmp_monthly])
@@ -890,13 +921,18 @@ def create_map_prediction_rasters(
     """
     pred_raster_dir = make_proper_dir_name(output_dir + 'Pred_Raster')
     if not load_files:
-        pred_df_list = glob(pred_file_dir + '*.parquet')
+        pred_df_list = sorted(glob(pred_file_dir + '*.parquet'))
         makedirs(pred_raster_dir)
         other_crop_col = crop_col + '_Other'
         unit_dict = {True: 'm3', False: 'mm'}
-        for pred_df_file in pred_df_list:
-            print('Predicting', pred_df_file)
+        for idx, pred_df_file in enumerate(pred_df_list):
+            print('Predicting', pred_df_file, '... ', idx + 1, '/', len(pred_df_list))
             pred_df = pd.read_parquet(pred_df_file).astype(float)
+            months = [f'Month_{m}' for m in range(1, 13)]
+            for m in months:
+                if m not in pred_df.columns:
+                    pred_df[m] = 0
+            pred_df = reindex_df(pred_df, column_names=None, ordering=True)
             pred_df_other_col_idx = pred_df.index[pred_df[other_crop_col] == 1]
             pred_df = pred_df.drop(columns=[other_crop_col])
             pred_arr = pred_df.to_numpy().copy()
@@ -911,17 +947,23 @@ def create_map_prediction_rasters(
             pred_df_copy = pred_df.copy(deep=True)
             if x_scaler:
                 pred_df_copy = pd.DataFrame(x_scaler.transform(pred_df), columns=pred_df_copy.columns)
+            pred_df_rice = pred_df_copy.copy(deep=True)
             pred_df_corn = pred_df_copy.copy(deep=True)
             pred_df_cotton = pred_df_copy.copy(deep=True)
             pred_df_soybeans = pred_df_copy.copy(deep=True)
+            pred_df_rice.loc[pred_df_other_col_idx, crop_col + '_Rice'] = 1
             pred_df_corn.loc[pred_df_other_col_idx, crop_col + '_Corn'] = 1
             pred_df_cotton.loc[pred_df_other_col_idx, crop_col + '_Cotton'] = 1
             pred_df_soybeans.loc[pred_df_other_col_idx, crop_col + '_Soybeans'] = 1
             pred_wu = np.abs(ml_model.predict(pred_df_copy))
+            pred_wu_rice = np.abs(ml_model.predict(pred_df_rice.loc[pred_df_other_col_idx]))
             pred_wu_corn = np.abs(ml_model.predict(pred_df_corn.loc[pred_df_other_col_idx]))
             pred_wu_cotton = np.abs(ml_model.predict(pred_df_cotton.loc[pred_df_other_col_idx]))
             pred_wu_soybeans = np.abs(ml_model.predict(pred_df_soybeans.loc[pred_df_other_col_idx]))
-            pred_other_avg = np.mean(np.array([pred_wu_corn, pred_wu_cotton, pred_wu_soybeans]), axis=0)
+            pred_other_avg = np.mean(np.array([
+                pred_wu_rice, pred_wu_corn,
+                pred_wu_cotton, pred_wu_soybeans
+            ]), axis=0)
             if y_scaler:
                 pred_wu = y_scaler.inverse_transform(pred_wu.reshape(-1, 1))
                 pred_other_avg = y_scaler.inverse_transform(pred_other_avg.reshape(-1, 1))
@@ -941,7 +983,9 @@ def create_map_prediction_rasters(
                     pred_wu[inf_pos] = map_extent_raster_file.nodata
             pred_wu = pred_wu.reshape(map_extent_raster_arr.shape)
             if volume_units:
-                pred_wu *= 2.471 * 4.047  # acremm/acre to acremm/(1e-2 km2) to m3/(1e-2 km2)
+                # The irrigated area is 1e+4 m2 (100 m x 100 m) and the water use (WU) is in mm
+                # So, WU (mm) needs to be multiplied by 1e+4 m2 x 1e-3 m = 10 to get WU in m3
+                pred_wu *= 10
             pred_wu_suffix = f'{pred_raster_dir}AIWUM2-1_100m_{unit_dict[volume_units]}_{year}_{month}'
             pred_wu_file = pred_wu_suffix + '.parquet'
             pred_df.to_parquet(pred_wu_file, index=False)
@@ -962,9 +1006,9 @@ def create_map_prediction_rasters(
                 resampling_func='sum'
             )
 
-            # correction to remove gdal artifacts
+            # correction to remove gdal artifacts by setting WU <= 0.5 m3 to no data
             pred_wu_1km_arr, pred_wu_1km_file = read_raster_as_arr(pred_wu_resampled_raster)
-            pred_wu_1km_arr[np.round(pred_wu_1km_arr, 2) <= 0.01] = np.nan
+            pred_wu_1km_arr[pred_wu_1km_arr <= 0.5] = np.nan
             pred_wu_1km_arr[np.isnan(pred_wu_1km_arr)] = pred_wu_1km_file.nodata
             pred_wu_1km_corrected = f'{pred_raster_dir}AIWUM2-1_1km_{unit_dict[volume_units]}_{year}_{month}.tif'
             write_raster(
@@ -1061,6 +1105,7 @@ def create_map_prediction_files(
                 pred_df[crop_col] = cdl_arr.ravel()
                 pred_df[lat_col] = lat_vals
                 pred_df[lon_col] = long_vals
+                pred_df['Month'] = month
                 raster_file_dict = create_raster_file_dict(
                     file_dirs, tuple(gee_files), tuple(prism_files),
                     tuple(swb_files), month, year
@@ -1075,7 +1120,7 @@ def create_map_prediction_files(
                 pred_df[crop_col] = pred_df[crop_col].apply(
                     lambda x: cdl_dict[int(x)]
                 ).astype(str)
-                pred_df = pd.get_dummies(pred_df, columns=[crop_col])
+                pred_df = pd.get_dummies(pred_df, columns=[crop_col, 'Month'])
                 nan_crop_column = crop_col + '_NaN'
                 pred_df.loc[pred_df[nan_crop_column] == 1, data_list[0]] = np.nan
                 pred_df = pred_df.drop(columns=[nan_crop_column])
@@ -1592,7 +1637,7 @@ def create_train_test_data(
         outlier_op (int): Outlier operation to perform. Set to 1 for removing outlier directly, 2 for removing outliers
                           by each crop, 3 for removing outliers by each year, or 4 for removing as per AIWUM 1 based on
                           irrigation thresholds. Note: for this project we only process outliers above the boxplot
-                          upper limit for 1-3. Set None to disable outlier processing.
+                          upper limit for 1-3. Set 0 to disable outlier processing.
         shuffle (bool): Set False to stop data shuffling.
         crop_models (bool): Set True for individual crop models for each crop type. If True, dummies are not created.
         hsg_to_inf (bool): Set False to disable creating the infiltration rate column based on the HSGs. Only works when
@@ -1628,8 +1673,7 @@ def create_train_test_data(
         input_df = input_df.replace([np.inf, -np.inf], np.nan).dropna()
         if year_list and year_col in input_df.columns:
             input_df = input_df[input_df[year_col].isin(year_list)]
-        if outlier_op is not None:
-            input_df = process_outliers(input_df, pred_attr, crop_col, year_col, outlier_op)
+        input_df = process_outliers(input_df, pred_attr, crop_col, year_col, outlier_op)
         input_df = convert_to_mm(input_df, pred_attr)
         input_df = convert_hsg_to_inf(input_df, drop_hsg=hsg_to_inf)
         input_df.to_csv(output_dir + 'Cleaned_MAP_GW_Data.csv', index=False)
@@ -1655,6 +1699,8 @@ def create_train_test_data(
         if not hsg_to_inf:
             x_train = pd.get_dummies(x_train, columns=['SWB_HSG'])
             x_test = pd.get_dummies(x_test, columns=['SWB_HSG'])
+        x_train = pd.get_dummies(x_train, columns=['Month'])
+        x_test = pd.get_dummies(x_test, columns=['Month'])
         x_train = reindex_df(x_train, column_names=None)
         x_test = reindex_df(x_test, column_names=None)
         if scaling:
@@ -1778,17 +1824,9 @@ def clean_file_dirs(
     """
 
     cdl_data_path = kwargs.get('cdl_data_path', '')
-    openet_data_path = kwargs.get('openet_data_path', '')
-    eemetric_data_path = kwargs.get('eemetric_data_path', '')
-    pt_jpl_data_path = kwargs.get('pt_jpl_data_path', '')
-    sims_data_path = kwargs.get('sims_data_path', '')
     drop_dict = {
         'CDL': cdl_data_path,
-        'Crop(s)': cdl_data_path,
-        'OpenET': openet_data_path,
-        'EEMETRIC': eemetric_data_path,
-        'PT-JPL': pt_jpl_data_path,
-        'SIMS': sims_data_path
+        'Crop(s)': cdl_data_path
     }
     file_dirs = list(file_dirs)
     for attr in drop_attrs:

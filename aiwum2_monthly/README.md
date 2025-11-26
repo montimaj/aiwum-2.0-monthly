@@ -1,21 +1,17 @@
-# AIWUM 2.1
+# AIWUM 2.0 Monthly
 
-Authors: [Sayantan Majumdar](https://scholar.google.com/citations?user=iYlO-VcAAAAJ&hl=en) [sayantan.majumdar@dri.edu], [Ryan Smith](https://scholar.google.com/citations?user=nzSrr8oAAAAJ&hl=en) [ryan.g.smith@colostate.edu], and [Vincent E. White](https://www.usgs.gov/staff-profiles/vincent-e-white) [vwhite@usgs.gov]
+Maintainer: [Sayantan Majumdar](https://www.dri.edu/directory/sayantan-majumdar/) [sayantan.majumdar@dri.edu]
 
-<img src="../Readme_Figures/USGS_logo.png" height="40"/> &nbsp; <img src="../Readme_Figures/CSU-Signature-357-617.png" height="50"/> &nbsp; <img src="../Readme_Figures/official-dri-logotag-trans-bkgd.png" height="40"/>
+<img src="../Readme_Figures/dri-logo.png" height="45"/> &nbsp; <img src="../Readme_Figures/csu-logo.png" height="55"/>
 
 
-Note: In-situ groundwater use data and the proprietary PRISM 800 m data are provided by the USGS.
-MAP ML project with the USGS, Colorado State University, and Desert Research Institute. This software has been successfully
-tested on three systems&mdash; [Alienware M17R1 2020](https://www.dell.com/en-us/gaming/alienware) (Windows 10 Home), [Alpine HPC](https://curc.readthedocs.io/en/latest/clusters/alpine/quick-start.html) (RedHat Enterprise Linux version 8),
-and the [Apple MacBook Pro 2023](https://www.apple.com/macbook-pro/) (macOS Ventura 13.4.1).
+Note: In-situ groundwater use data are provided by the USGS.
 
 ## Citations
-**Software**: Majumdar, S., Smith, R., and White, V.E., 2023, Aquaculture and Irrigation Water Use Model 2.0 Repository: U.S. Geological Survey data release, https://doi.org…
 
-**Data Release**: Majumdar, S., Smith, R.G., Hasan, M.F., Wilson, J.L., Bristow, E.L., Rigby, J.R., Kress, W.H., Painter, J.A., and White, V.E., 2023, Aquaculture and Irrigation Water Use Model (AIWUM) 2.0 input and output datasets, https://doi.org/10.5066/P9CET25K.
+Majumdar, S., Smith, R. G., and Hasan, M. F, 2025, A High-Resolution Data-Driven Monthly Aquaculture and Irrigation Water Use Model in the Mississippi Alluvial Plain, IGARSS 2025 - 2025 IEEE International Geoscience and Remote Sensing Symposium, 2686–2691, https://doi.org/10.1109/IGARSS55030.2025.11243173
 
-**Journal Article**: Majumdar, S., Smith, R.G., Hasan, M.F., Wilson, J.L., Bristow, E.L., Rigby, J.R., Kress, W.H., Painter, J.A., and White, V.E., 2023, Improving Crop-Specific Groundwater Use Estimation in the Mississippi Alluvial Plain: Implications for Integrated Remote Sensing and Machine Learning Approaches in Data-Scarce Regions. Under review in Journal of Hydrology: Regional Studies.
+Majumdar, S., Smith, R. G., Hasan, M. F., Wilson, J. L., White, V. E., Bristow, E. L., Rigby, J. R., Kress, W. H., and Painter, J. A., 2024, Improving crop-specific groundwater use estimation in the Mississippi Alluvial Plain: Implications for integrated remote sensing and machine learning approaches in data-scarce regions, Journal of Hydrology: Regional Studies, 52, 101674, https://doi.org/10.1016/j.ejrh.2024.101674
 
 ## Running the project
 
@@ -38,40 +34,55 @@ Download the repository from the compressed file link at the top right of the re
 Unzip all zipped files.  Several of the input datasets in this repository are zipped for efficient storage and must be unzipped before they can be used to run this project.
 
 #### Repository disk space requirements
-The uncompressed Input data size is around 55.6 GB. Without the PRISM 800 m precipitation (ppt) and maximum temperature (tmax) datasets, 
-the Input data size is around 6.6 GB. If you do not have access to these proprietary PRISM datasets, pass 'PRISM' and 'TMAX' to 
-data-list (instead of 'ppt' and 'tmax') for downloading the free version (4 km spatial resolution) from Google Earth Engine. 
-These 4 km PRISM datasets are provided in the Inputs directory as well. See the last section of this document to understand 
-the various input arguments.
-
-The Output directory size (including intermediate files) is  84.7 GB. Therefore, make sure to have around 92 GB free space if you are not using the proprietary PRISM data.
-If you are using the 800 m PRISM product, then around 141 GB free space is recommended.
+More than 200 GB of free space is recommended.
 
 ### 3. Creating the conda environment and installing packages
 Open Linux/Mac terminal or Windows PowerShell and run the following:
 ```
-conda create -y -n aiwum2 python=3.10
-conda activate aiwum2
-conda install -y -c conda-forge rioxarray geopandas lightgbm earthengine-api rasterstats seaborn openpyxl
-conda install -y -c conda-forge dask-ml dask-jobqueue swifter # may take a while to solve dependencies
-```
-
-Once the above steps are successfully executed, run the following to load the GDAL_DATA environment variable which is needed by 
-rasterio.
-
-```
-conda deactivate aiwum2  
-conda activate aiwum2
+conda create -y -n aiwum2-1 python=3.12
+conda activate aiwum2-1
+conda install -y -c conda-forge rioxarray geopandas lightgbm earthengine-api rasterstats seaborn openpyxl dask-ml dask-jobqueue swifter
 ```
 
 ### 4. Google Earth Engine Authentication
 This project relies on the Google Earth Engine (GEE) Python API for downloading (and reducing) some of the predictor datasets from the GEE
-data repository. After completing step 3, run ```earthengine authenticate```. The installation and authentication guide 
-for the earth-engine Python API is available [here](https://developers.google.com/earth-engine/guides/python_install). The Google Cloud CLI tools
-may be required for this GEE authentication step. Refer to the installation docs [here](https://cloud.google.com/sdk/docs/install-sdk).
+data repository. The Google Cloud CLI tools are required for GEE authentication. Refer to the installation docs [here](https://cloud.google.com/sdk/docs/install-sdk). 
+
+A GCloud project needs to be set up online (e.g., ```aiwum2-1```), with the GEE API service enabled (https://console.cloud.google.com/). Then set a default project using ```gcloud config set project aiwum2-1```. Additionally, you may need to run ```gcloud auth application-default set-quota-project aiwum2-1``` if prompted by the GCloud CLI. 
+After that, run ```earthengine authenticate```. The installation and authentication guide 
+for the earth-engine Python API is available [here](https://developers.google.com/earth-engine/guides/python_install). 
 
 ### 5. Running AIWUM 2.1
-Make sure that the aiwum2 conda environment is active. If not, run ```conda activate aiwum2``` before running the following codes.
+
+**Note:** If the proprietary PRISM 800 m datasets are not present then the produced model output rasters will differ from the provided `AIWUM2_Data/Outputs` rasters.
+
+Make sure that the aiwum2 conda environment is active. If not, run ```conda activate aiwum2-1``` before running the following codes.
+The simplest way to run the project is to initially set `--load-files`, `--load-data`, `--load-model`, `--load-map-csv`, `--load-pred-raster`, `--load-pred-csv`, and `--load-map-extent` to `False`. 
+Check the **'Example run format (Linux/Mac Terminal) using the proprietary 800 m data PRISM datasets'** subsection below to avoid spending time on the following instructions.
+
+After the first run, if the existing downloaded files, generated CSVs, and rasters are to be kept, but the `--test-size` and/or other flags need to be changed to only test the new model performance, set all but `--load-model` to `True`. In this way different modules can be tested without running the entire project each time.
+To load a provided model, set `--load-model` to `True` and `--model-dir` to `../AIWUM2_Data/Outputs/Models/`  
+
+**In addition, the code requires the downloaded predictor data (RO, SM_IDAHO, PPT_4km, TMAX_4km) to be in a specific format.** 
+The predictor data have been provided as individual zip files in `AIWUM2_Data/Inputs`. To reuse these data, rather than downloading the datasets, set `--load-data`. Then 
+unzip these files and follow the instructions below. To download these datasets, simply set `--load-data` to `False` and skip the steps below.
+
+a. Create 'Downloaded_Data' directory within AIWUM2_Data/Inputs.
+
+b. Within AIWUM2_Data/Inputs/Downloaded_Data/ create these directories and subdirectories: `GEE_Data/GEE_Files` and `SSEBop_Data/SSEBop_Files/`.
+
+c. Copy all the TIF files (do not copy as directories or subdirectories, only the TIF files) from PPT_4km.zip , TMAX_4km.zip, RO.zip, and SM_IDAHO.zip to `GEE_Data/GEE_Files/`.
+
+d. Copy all the TIF (do not copy as directories or subdirectories, only the TIF files) files from SSEBop.zip to `SSEBop_Data/SSEBop_Files/`.
+
+The file structure will essentially be `AIWUM2_Data/Inputs/Downloaded_Data/GEE_Data/GEE_Files/<file_name>.tif` and `AIWUM2_Data/Inputs/Downloaded_Data/SSEBop_Data/SSEbop_Files/<file_name>.tif`. 
+E.g., `AIWUM2_Data/Inputs/Downloaded_Data/GEE_Data/GEE_Files/PPT_2014_04.tif`, `AIWUM2_Data/Inputs/Downloaded_Data/GEE_Data/GEE_Files/RO_2014_04.tif`, `AIWUM2_Data/Inputs/Downloaded_Data/SSEBop_Data/SSEbop_Files/m201404.modisSSEBopETactual.tif`, and so on.
+
+_Optional step_: If the SWB HSG-derived infiltration rate and irrigation demands are to be used as model predictors, then the SWB.zip file should be extracted and kept as it is within `AIWUM2_Data/Inputs/`. Note that the SWB irrigation data is only available till 2020 and hence, the ```--train-year-list``` and ```--pred-year-list``` flags should be updated accordingly.
+
+The train and test data CSV files are not provided. Therefore, if this is the first run of the project, set `--load-map-csv`, `--load-pred-raster`, `--load-pred-file`, and `--load-map-extent` to `False`. 
+
+
 #### Linux/Mac Terminal:
 ```
 cd aiwum2_monthly/ 
@@ -102,6 +113,7 @@ python map_ml.py \
 --aiwum1-monthly-tot-dir <aiwum1-monthly-dir-path>
 ```
 ##### Example run format (Linux/Mac Terminal) using the proprietary 800 m data PRISM datasets
+These are the exact flags used to generate the provided output files in the data release ([Majumdar and others, 2024](https://doi.org...)). Thus, running the script below will also lead to reproducible results and the user need not worry about making some of the manual file and directory structure operations discussed at the start of this section.
 ```
 cd aiwum2_monthly/ 
 python map_ml.py \
@@ -111,7 +123,7 @@ python map_ml.py \
 --field-shp-dir ../AIWUM2_Data/Inputs/Permitted_Boundaries/Shapefiles/ \
 --load-files True \
 --load-data True \
---load-model True \
+--load-model False \
 --data-list SSEBop SM_IDAHO ppt tmax RO \
 --prism-path ../AIWUM2_Data/Inputs/PRISM/PRISM_800m/AN81/ \
 --cdl-path ../AIWUM2_Data/Inputs/CDL/ \
@@ -121,13 +133,14 @@ python map_ml.py \
 --map-extent-file ../AIWUM2_Data/Inputs/Model_Extent/Model_Extent.shp \
 --train-year-list 2014 2015 2016 2017 2018 2019 2020 2021 \
 --pred-year-list 2014 2015 2016 2017 2018 2019 2020 2021 \
---load-map-csv True \
---load-pred-raster True \
+--load-map-csv False \
+--load-pred-raster False \
 --load-pred-file True \
 --load-map-extent True \
 --model-name LGBM \
 --randomized-search True \
 --compare-aiwums True \
+--repeats 1 \
 --aiwum1-monthly-tot-dir ../AIWUM2_Data/Inputs/AIWUM1-1_Monthly_total/
 ```
 
@@ -195,10 +208,10 @@ python map_ml.py `
 ```
 usage: map_ml.py [-h] --input-rt-shp INPUT_RT_SHP [--site-id-shp SITE_ID_SHP] [--year-shp YEAR_SHP] [--crop-shp CROP_SHP] [--state-shp STATE_SHP] [--acre-shp ACRE_SHP] [--lat-shp LAT_SHP] [--lon-shp LON_SHP] --input-rt-xls INPUT_RT_XLS [--site-id-xls SITE_ID_XLS] [--dt-xls DT_XLS] [--state-list STATE_LIST [STATE_LIST ...]] [--vmp-csv VMP_CSV] --field-shp-dir FIELD_SHP_DIR
                  [--load-files LOAD_FILES] [--load-data LOAD_DATA] [--load-model LOAD_MODEL] [--use-sub-cols USE_SUB_COLS] [--sub-cols SUB_COLS [SUB_COLS ...]] [--lat-pump LAT_PUMP] [--lon-pump LON_PUMP] [--field-permit-col FIELD_PERMIT_COL] [--test-size TEST_SIZE] [--random-state RANDOM_STATE] [--output-dir OUTPUT_DIR] [--model-dir MODEL_DIR] [--pred-attr PRED_ATTR]
-                 [--pred-start-month PRED_START_MONTH] [--pred-end-month PRED_END_MONTH] --data-list DATA_LIST [DATA_LIST ...] [--gee-scale GEE_SCALE] [--prism-path PRISM_PATH] --cdl-path CDL_PATH --lanid-path LANID_PATH --nhd-path NHD_PATH [--openet-path OPENET_PATH] [--eemetric-path EEMETRIC_PATH] [--pt-jpl-path PT_JPL_PATH] [--sims-path SIMS_PATH] --map-extent-file
-                 MAP_EXTENT_FILE [--stratified-kfold STRATIFIED_KFOLD] --train-year-list TRAIN_YEAR_LIST [TRAIN_YEAR_LIST ...] [--scaling SCALING] [--split-strategy SPLIT_STRATEGY] [--test-years TEST_YEARS [TEST_YEARS ...]] [--load-map-csv LOAD_MAP_CSV] [--model-name MODEL_NAME] [--randomized-search RANDOMIZED_SEARCH] [--fold-count FOLD_COUNT] [--repeats REPEATS]
-                 [--drop-attr DROP_ATTR [DROP_ATTR ...]] [--outlier-op OUTLIER_OP] [--compare-aiwums COMPARE_AIWUMS] [--load-pred-raster LOAD_PRED_RASTER] [--load-pred-file LOAD_PRED_FILE] [--load-map-extent LOAD_MAP_EXTENT] [--aiwum1-monthly-tot-dir AIWUM1_MONTHLY_TOT_DIR] --pred-year-list PRED_YEAR_LIST [PRED_YEAR_LIST ...] [--use-dask USE_DASK] --swb-data-path SWB_DATA_PATH
-                 [--hsg-to-inf HSG_TO_INF] [--volume-units VOLUME_UNITS] [--pdp-plot-features PDP_PLOT_FEATURES [PDP_PLOT_FEATURES ...]] [--calc-cc CALC_CC] [--calc-relative-et CALC_RELATIVE_ET] [--calc-eff-ppt CALC_EFF_PPT]
+                 [--pred-start-month PRED_START_MONTH] [--pred-end-month PRED_END_MONTH] --data-list DATA_LIST [DATA_LIST ...] [--gee-scale GEE_SCALE] [--prism-path PRISM_PATH] --cdl-path CDL_PATH --lanid-path LANID_PATH --nhd-path NHD_PATH --map-extent-file MAP_EXTENT_FILE [--stratified-kfold STRATIFIED_KFOLD] --train-year-list TRAIN_YEAR_LIST [TRAIN_YEAR_LIST ...]
+                 [--scaling SCALING] [--split-strategy SPLIT_STRATEGY] [--test-years TEST_YEARS [TEST_YEARS ...]] [--load-map-csv LOAD_MAP_CSV] [--model-name MODEL_NAME] [--randomized-search RANDOMIZED_SEARCH] [--fold-count FOLD_COUNT] [--repeats REPEATS] [--drop-attr DROP_ATTR [DROP_ATTR ...]] [--outlier-op OUTLIER_OP] [--compare-aiwums COMPARE_AIWUMS]
+                 [--load-pred-raster LOAD_PRED_RASTER] [--load-pred-file LOAD_PRED_FILE] [--load-map-extent LOAD_MAP_EXTENT] [--aiwum1-monthly-tot-dir AIWUM1_MONTHLY_TOT_DIR] --pred-year-list PRED_YEAR_LIST [PRED_YEAR_LIST ...] [--use-dask USE_DASK] --swb-data-path SWB_DATA_PATH [--hsg-to-inf HSG_TO_INF] [--volume-units VOLUME_UNITS]
+                 [--pdp-plot-features PDP_PLOT_FEATURES [PDP_PLOT_FEATURES ...]] [--calc-cc CALC_CC] [--calc-relative-et CALC_RELATIVE_ET] [--calc-eff-ppt CALC_EFF_PPT]
 
 Flags to run AIWUM 2.1
 
@@ -244,9 +257,9 @@ options:
   --random-state RANDOM_STATE
                         PRNG seed (default: 1234)
   --output-dir OUTPUT_DIR
-                        Output directory (default: ../Outputs/)
+                        Output directory (default: ../AIWUM2_Data/Outputs/)
   --model-dir MODEL_DIR
-                        Model directory (default: ../Models/)
+                        Model directory (default: ../AIWUM2_Data/Outputs/Models/)
   --pred-attr PRED_ATTR
                         Prediction/target attribute name (default: AF_Acre)
   --pred-start-month PRED_START_MONTH
@@ -254,8 +267,8 @@ options:
   --pred-end-month PRED_END_MONTH
                         End month for predicting water use rasters (default: 12)
   --data-list DATA_LIST [DATA_LIST ...]
-                        List of data sets to use/download. Valid names include 'SSEBop', 'SM_IDAHO', 'MOD16', 'SMOS_SMAP', 'DROUGHT', 'PPT', 'TMIN', 'TMAX', 'WS', 'RO', 'NDWI', 'SPH', 'DEF', 'VPD', 'VPD_SMAP', 'ppt', 'tmax', 'tmin', 'tmean', 'CDL', 'EEMETRIC', 'PT-JPL', 'SIMS', 'SWB_HSG', 'SWB_ET', 'SWB_PPT', 'SWB_INT', 'SWB_IRR', 'SWB_INF', 'SWB_RINF', 'SWB_RO', 'SWB_SS',
-                        'SWB_MRD', 'SWB_SSM', 'SWB_AWC'Note: 'ppt', 'tmax', 'tmin', 'tmean' are for PRISM 800 m data, 'CDL' for USDA-NASS cropland data, 'SWB*' for SWB products (default: None)
+                        List of data sets to use/download. Valid names include 'SSEBop', 'SM_IDAHO', 'MOD16', 'SMOS_SMAP', 'DROUGHT', 'PPT', 'TMIN', 'TMAX', 'WS', 'RO', 'NDWI', 'SPH', 'DEF', 'VPD', 'VPD_SMAP', 'ppt', 'tmax', 'tmin', 'CDL', 'SWB_HSG', 'SWB_IRR',
+                        Note: 'ppt', 'tmax', 'tmin', 'tmean' are for PRISM 800 m data, 'CDL' for USDA-NASS cropland data, 'SWB*' for SWB products (default: None)
   --gee-scale GEE_SCALE
                         Google Earth Engine scale (m) for downloading (default: 1000)
   --prism-path PRISM_PATH
@@ -264,14 +277,6 @@ options:
   --lanid-path LANID_PATH
                         Path to the 30 m LANID TIFs. Required for generating AIWUM 2 rasters (default: None)
   --nhd-path NHD_PATH   Path to the MAP NHD shapefile (default: None)
-  --openet-path OPENET_PATH
-                        Path to the annual OpenET products. Required if OpenET is in data-list (default: )
-  --eemetric-path EEMETRIC_PATH
-                        Path to the monthly EEMETRIC products. Required if EEMETRIC is in data-list (default: )
-  --pt-jpl-path PT_JPL_PATH
-                        Path to the monthly PT-JPL products. Required if PT-JPL is in data-list (default: )
-  --sims-path SIMS_PATH
-                        Path to the monthly SIMS products. Required if SIMS is in data-list (default: )
   --map-extent-file MAP_EXTENT_FILE
                         Path to the MAP extent shapefile (default: )
   --stratified-kfold STRATIFIED_KFOLD
@@ -294,7 +299,7 @@ options:
                         Number of folds for kFold (default: 5)
   --repeats REPEATS     Number of repeats for kFold (default: 3)
   --drop-attr DROP_ATTR [DROP_ATTR ...]
-                        Attributes to drop from the modeling process (default: ['Year', 'Month', 'PermitNumb', 'State', 'Data'])
+                        Attributes to drop from the modeling process (default: ['Year', 'PermitNumb', 'State', 'Data'])
   --outlier-op OUTLIER_OP
                         Outlier operation to perform. Set to 1 for removing outlier directly, 2 for removing outlier by each crop, 3 for removing outliers by each year,4 for removing as per AIWUM 1 based on irrigation thresholds (default: 2)
   --compare-aiwums COMPARE_AIWUMS

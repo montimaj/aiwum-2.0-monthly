@@ -54,8 +54,8 @@ def run_map_ml(args: argparse.Namespace) -> None:
         pred_end_month -> End month for predicting water use rasters.
         data_list -> List of data sets to use/download. Valid names include 'SSEBop', 'SM_IDAHO', 'MOD16', 'SMOS_SMAP',
                      'DROUGHT', 'PPT', 'TMIN', 'TMAX', 'WS', 'RO', 'NDWI', 'SPH', 'DEF', 'VPD', 'VPD_SMAP', 'ppt',
-                     'tmax', 'tmin', 'tmean', 'CDL', 'EEMETRIC', 'PT-JPL', 'SIMS', 'SWB_HSG', 'SWB_ET', 'SWB_PPT',
-                     'SWB_INT', 'SWB_IRR', 'SWB_INF', 'SWB_RINF', 'SWB_RO', 'SWB_SS', 'SWB_MRD', 'SWB_SSM', 'SWB_AWC'
+                     'tmax', 'tmin', 'tmean', 'CDL', 'SWB_HSG', 'SWB_ET', 'SWB_PPT', 'SWB_INT', 'SWB_IRR', 'SWB_INF',
+                     'SWB_RINF', 'SWB_RO', 'SWB_SS', 'SWB_MRD', 'SWB_SSM', 'SWB_AWC'
                      Note- 'ppt', 'tmax', 'tmin', 'tmean' are for PRISM 800 m data, 'CDL' for USDA-NASS cropland data,
                      'SWB*' for SWB products.
         gee_scale -> Google Earth Engine scale (m) for downloading.
@@ -63,10 +63,6 @@ def run_map_ml(args: argparse.Namespace) -> None:
         cdl_path -> Path to the 30 m CDL products. Required if CDL is in data-list.
         lanid_path -> Path to the annual LANID TIFs.
         nhd_path -> Path to the MAP NHD shapefile.
-        openet_path -> Path to the annual OpenET products. Required if OpenET is in data-list.
-        eemetric_path -> Path to the monthly EEMETRIC products. Required if EEMETRIC is in data-list.
-        pt_jpl_path -> Path to the monthly PT-JPL products. Required if PT-JPL is in data-list.
-        sims_path -> Path to the monthly SIMS products. Required if SIMS is in data-list.
         map_extent_file -> Path to the MAP extent shapefile.
         stratified_kfold -> Set True to use repeated stratified k-fold to generate stratified splits based on the
                             crop type.
@@ -89,6 +85,7 @@ def run_map_ml(args: argparse.Namespace) -> None:
                       by each crop, 3 for removing outliers by each year, or 4 for removing as per AIWUM 1 based on
                       irrigation thresholds.
                       Note that for this project we only process outliers above the boxplot upper limit for 1-3.
+                      Set 0 to disable outlier processing.
         compare_aiwums -> Set True to compare AIWUM 1.1 and 2.0 monthly rasters.
         load_pred_raster -> Load existing prediction rasters.
         load_pred_file -> Load existing predictor parquet files.
@@ -128,6 +125,7 @@ def run_map_ml(args: argparse.Namespace) -> None:
         year_list=args.train_year_list,
         state_list=args.state_list,
         vmp_csv=args.vmp_csv,
+        outlier_op=args.outlier_op,
         load_csv=args.load_files,
     )
     monthly_df, file_dirs = prepare_data(
@@ -161,7 +159,7 @@ def run_map_ml(args: argparse.Namespace) -> None:
         year_list=args.train_year_list,
         split_strategy=args.split_strategy,
         test_year=args.test_years,
-        outlier_op=args.outlier_op,
+        outlier_op=0,
         hsg_to_inf=args.hsg_to_inf
     )
     x_train, x_test, y_train, y_test, x_scaler, y_scaler, year_train, year_test, crop_train, crop_test = ret_vals
@@ -196,11 +194,7 @@ def run_map_ml(args: argparse.Namespace) -> None:
     pred_data_list = [dl for dl in args.data_list if dl not in args.drop_attr]
     file_dirs = clean_file_dirs(
         file_dirs, args.drop_attr,
-        cdl_data_path=args.cdl_path,
-        openet_data_path=args.openet_path,
-        eemetric_data_path=args.eemetric_path,
-        pt_jpl_data_path=args.pt_jpl_path,
-        sims_data_path=args.sims_path
+        cdl_data_path=args.cdl_path
     )
     _, pred_wu_dir, map_extent_raster_dir = create_prediction_map(
         model, args.map_extent_file, tuple(file_dirs),
@@ -264,18 +258,16 @@ if __name__ == '__main__':
     parser.add_argument('--field-permit-col', type=str, default='PermitNumb', help='Field permit column name')
     parser.add_argument('--test-size', type=float, default=0.2, help='Test data size')
     parser.add_argument('--random-state', type=int, default=1234, help='PRNG seed')
-    parser.add_argument('--output-dir', type=str, default='../Outputs/', help='Output directory')
-    parser.add_argument('--model-dir', type=str, default='../Models/', help='Model directory')
+    parser.add_argument('--output-dir', type=str, default='../AIWUM2_Data/Outputs/', help='Output directory')
+    parser.add_argument('--model-dir', type=str, default='../AIWUM2_Data/Outputs/Models/', help='Model directory')
     parser.add_argument('--pred-attr', type=str, default='AF_Acre', help='Prediction/target attribute name')
     parser.add_argument('--pred-start-month', type=int, default=1, help='Start month for predicting water use rasters')
     parser.add_argument('--pred-end-month', type=int, default=12, help='End month for predicting water use rasters')
     parser.add_argument('--data-list', type=str, nargs='+', required=True,
                         help="List of data sets to use/download. Valid names include 'SSEBop', 'SM_IDAHO', 'MOD16',"
                              " 'SMOS_SMAP', 'DROUGHT', 'PPT', 'TMIN', 'TMAX', 'WS', 'RO', 'NDWI', 'SPH', 'DEF', "
-                             "'VPD', 'VPD_SMAP', 'ppt', 'tmax', 'tmin', 'tmean', 'CDL', 'EEMETRIC', 'PT-JPL', 'SIMS', "
-                             "'SWB_HSG', 'SWB_ET', 'SWB_PPT', 'SWB_INT', 'SWB_IRR', 'SWB_INF', 'SWB_RINF', 'SWB_RO', "
-                             "'SWB_SS', 'SWB_MRD', 'SWB_SSM', 'SWB_AWC'"
-                             "Note: 'ppt', 'tmax', 'tmin', 'tmean' are for PRISM 800 m data, "
+                             "'VPD', 'VPD_SMAP', 'ppt', 'tmax', 'tmin', 'CDL', "
+                             "'SWB_HSG', 'SWB_IRR'. Note: 'ppt', 'tmax', 'tmin', 'tmean' are for PRISM 800 m data, "
                              "'CDL' for USDA-NASS cropland data, 'SWB*' for SWB products")
     parser.add_argument('--gee-scale', type=int, default=1000, help='Google Earth Engine scale (m) for downloading')
     parser.add_argument('--prism-path', type=str, default='',
@@ -287,14 +279,6 @@ if __name__ == '__main__':
     parser.add_argument('--lanid-path', type=str, required=True,
                         help='Path to the 30 m LANID TIFs. Required for generating AIWUM 2 rasters')
     parser.add_argument('--nhd-path', type=str, required=True, help='Path to the MAP NHD shapefile')
-    parser.add_argument('--openet-path', type=str, default='',
-                        help='Path to the annual OpenET products. Required if OpenET is in data-list')
-    parser.add_argument('--eemetric-path', type=str, default='',
-                        help='Path to the monthly EEMETRIC products. Required if EEMETRIC is in data-list')
-    parser.add_argument('--pt-jpl-path', type=str, default='',
-                        help='Path to the monthly PT-JPL products. Required if PT-JPL is in data-list')
-    parser.add_argument('--sims-path', type=str, default='',
-                        help='Path to the monthly SIMS products. Required if SIMS is in data-list')
     parser.add_argument('--map-extent-file', type=str, required=True, default='',
                         help='Path to the MAP extent shapefile')
     parser.add_argument('--stratified-kfold', type=boolean_string, default=True,
@@ -321,12 +305,13 @@ if __name__ == '__main__':
     parser.add_argument('--fold-count', type=int, default=5, help='Number of folds for kFold')
     parser.add_argument('--repeats', type=int, default=3, help='Number of repeats for kFold')
     parser.add_argument('--drop-attr', type=str, nargs='+',
-                        default=['Year', 'Month', 'PermitNumb', 'State', 'Data'],
+                        default=['Year', 'PermitNumb', 'State', 'Data'],
                         help='Attributes to drop from the modeling process')
     parser.add_argument('--outlier-op', type=int, default=2,
                         help='Outlier operation to perform. Set to 1 for removing outlier directly, '
                              '2 for removing outlier by each crop, 3 for removing outliers by each year,'
-                             '4 for removing as per AIWUM 1 based on irrigation thresholds')
+                             '4 for removing as per AIWUM 1 based on irrigation thresholds,'
+                             '0 to disable outlier processing')
     parser.add_argument('--compare-aiwums', type=boolean_string, default=False,
                         help='Set True to compare AIWUM 1.1 and 2.0 monthly rasters')
     parser.add_argument('--load-pred-raster', type=boolean_string, default=False,
@@ -345,7 +330,7 @@ if __name__ == '__main__':
                              'Only works when SWB_HSG is present in --data-list')
     parser.add_argument('--volume-units', type=boolean_string, default=True,
                         help='Set False to use mm as water use units instead of m3. '
-                             'Only applies to AIWUM 2 predicted water use rasters.')
+                             'Only applies to AIWUM 2.1 predicted water use rasters.')
     parser.add_argument('--pdp-plot-features', type=str, nargs='+', default=[],
                         help="Features to use for generating PDP plots. Set 'All' to use all the features "
                              "used for model training.")

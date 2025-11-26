@@ -9,6 +9,7 @@ Provides methods for machine learning (ML) operations required for the MAP proje
 import pandas as pd
 import numpy as np
 import pickle
+import swifter
 from typing import Any
 from lightgbm import LGBMRegressor
 from dask.distributed import Client
@@ -52,11 +53,13 @@ def get_model_param_dict(
         'LGBM': LGBMRegressor(
             tree_learner='feature', random_state=random_state,
             deterministic=True, force_row_wise=True,
+            verbosity=-1
         ),
         'DRF': LGBMRegressor(
             boosting_type='rf', tree_learner='feature',
             subsample_freq=1, random_state=random_state,
-            deterministic=True, force_row_wise=True
+            deterministic=True, force_row_wise=True,
+            verbosity=-1
         ),
         'RF': RandomForestRegressor(random_state=random_state, n_jobs=n_jobs),
         'ETR': ExtraTreesRegressor(random_state=random_state, n_jobs=n_jobs, bootstrap=True),
@@ -475,8 +478,11 @@ def get_prediction_results(
     test_df['DATA'] = ['TEST'] * test_df.shape[0]
     test_df['Pred_GW'] = y_pred_test
     test_df['Actual_GW'] = y_test
-    pred_df = pd.concat([train_df, test_df])
+    pred_df = pd.concat([train_df, test_df]).reset_index(drop=True)
     pred_df['Error_GW'] = pred_df['Actual_GW'] - pred_df['Pred_GW']
+    month_cols = [col for col in pred_df.columns if col.startswith('Month')]
+    pred_df['Month'] = pred_df[month_cols].swifter.apply(lambda x: x[x == 1].index[0].split('_')[1], axis=1)
+    pred_df = pred_df.drop(columns=month_cols)
     if crop_models:
         crop = model_name[model_name.find('_') + 1:]
         pred_df[crop_col] = [crop] * pred_df['Error_GW'].size

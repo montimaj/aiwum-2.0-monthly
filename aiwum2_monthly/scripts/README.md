@@ -1,0 +1,3 @@
+Analysis scripts used by [Majumdar and others (2025)](https://doi.org/10.1109/IGARSS55030.2025.11242748).
+
+Majumdar, S., Smith, R. G., and Hasan, M. F, 2025, A High-Resolution Data-Driven Monthly Aquaculture and Irrigation Water Use Model in the Mississippi Alluvial Plain, IGARSS 2025 - 2025 IEEE International Geoscience and Remote Sensing Symposium, 2686–2691, https://doi.org/10.1109/IGARSS55030.2025.11243173

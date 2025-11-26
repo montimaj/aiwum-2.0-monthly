@@ -491,7 +491,7 @@ def crop_raster(
         ref_raster_ext = gpd.GeoDataFrame({'geometry': box(minx, miny, maxx, maxy)}, index=[0],
                                           crs=ref_raster.crs.to_string())
     ref_raster_ext = ref_raster_ext.to_crs(crs=input_raster.crs.data)
-    ref_raster_ext.to_file('../Outputs/Test_Ref_Ext.shp')
+    ref_raster_ext.to_file('../AIWUM2_Data/Outputs/Test_Ref_Ext.shp')
     coords = [json.loads(ref_raster_ext.to_json())['features'][0]['geometry']]
     out_img, out_transform = mask(dataset=input_raster, shapes=coords, crop=True)
     out_img = out_img.squeeze()
