@@ -1,4 +1,4 @@
-# Aquaculture and Irrigation Water Use Model 2.1 Software
+# Aquaculture and Irrigation Water Use Model-2.0-Monthly Software
 
 Maintainer: [Sayantan Majumdar](https://www.dri.edu/directory/sayantan-majumdar/) [sayantan.majumdar@dri.edu]
 
